@@ -43,3 +43,19 @@ class SIEAlunos(SIE):
         :rtype : dict
         """
         return self.api.performGETRequest("V_ALUNOS_ATIVOS", {"CPF_SEM_MASCARA": cpf}, cached=self.cacheTime).content[0]
+
+
+    def get_alunos_ativos(self,query):
+        """
+
+        :param query: string usada em uma query de like no bd
+        :return: lista de alunos que dão match na string passada em query
+        """
+        params = {"LMIN": 0, "LMAX": 5, "NOME":query}
+        fields = ["ID_ALUNO", "NOME", "MATRICULA"]
+        try:
+            res = self.api.performGETRequest("V_ALUNOS_ATIVOS",params, fields,cached=self.cacheTime)
+            return res.content if res is not None else []
+        except ValueError:
+            return []
+

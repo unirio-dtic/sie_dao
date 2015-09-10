@@ -1,7 +1,8 @@
 # coding=utf-8
 import base64
 from datetime import date, datetime
-from unirio.api.apiresult import APIException
+from deprecation import deprecated
+from unirio.api.apiresult import APIException, POSTException
 from sie import SIE
 from gluon import current
 from sie.SIEBolsistas import SIEBolsas, SIEBolsistas
@@ -43,7 +44,7 @@ class SIEProjetos(SIE):
         }
 
         try:
-            return self.api.performGETRequest(self.path, params, cached=self.cacheTime).content[0]
+            return self.api.performGETRequest(self.path, params, cached=0).content[0]
         except (ValueError, AttributeError):
             return None
 
@@ -129,7 +130,7 @@ class SIEProjetos(SIE):
             "LMAX": 99999
         })
 
-        return self.api.performGETRequest(self.path, params).content
+        return self.api.get(self.path, params).content
 
     def projetosDadosEnsino(self, edicao, params={}):
         """
@@ -171,6 +172,7 @@ class SIEProjetos(SIE):
         if projeto["SITUACAO_ITEM"] in range(1, 10):
             return True
 
+    @deprecated
     def salvarProjeto(self, projeto, funcionario):
         """
         EVENTO_TAB              => Tipos de Eventos
@@ -297,6 +299,13 @@ class SIEProjetos(SIE):
 
 
 class SIEArquivosProj(SIE):
+
+
+    ITEM_TIPO_ARQUIVO_TERMO_OUTORGA = 19
+    ITEM_TIPO_ARQUIVO_PROJETO = 1
+    ITEM_TIPO_ARQUIVO_ATA_DEPARTAMENTO = 5
+    ITEM_TIPO_ARQUIVO_PARECER_CEUA = 18
+
     def __init__(self):
         super(SIEArquivosProj, self).__init__()
         self.path = "ARQUIVOS_PROJ"
@@ -313,6 +322,85 @@ class SIEArquivosProj(SIE):
         """
         return base64.b64encode(arquivo.file.read())
 
+    def get_arquivo_projeto(self, id_projeto):
+        """
+        Retorna um dicionário contendo a ata de departamento que satisfaça o id_projeto ou None, caso tal arquivo não exista
+        :param id_projet:
+        :return:
+        """
+        return self.get_arquivo(id_projeto, self.ITEM_TIPO_ARQUIVO_PROJETO)
+
+    def get_ata_departamento(self, id_projeto):
+        """
+        Retorna um dicionário contendo o arquivo de projeto que satisfaça o id_projeto ou None, caso tal arquivo não exista
+        :param id_projet:
+        :return:
+        """
+        return self.get_arquivo(id_projeto, self.ITEM_TIPO_ARQUIVO_ATA_DEPARTAMENTO)
+
+    def get_parecer_comite_etica(self, id_projeto):
+        """
+        Retorna um dicionário contendo o arquivo de parecer de comite de ética que satisfaça o id_projeto ou None, caso tal arquivo não exista
+        :param id_projeto:
+        :return:
+        """
+        return self.get_arquivo(id_projeto, self.ITEM_TIPO_ARQUIVO_PARECER_CEUA)
+
+    def get_termo_outorga(self, id_projeto):
+        """
+        Retorna um dicionário contendo o termo de outorga que satisfaça o id_projeto ou None, caso tal arquivo não exista
+        :param id_projet:
+        :return:
+        """
+        return self.get_arquivo(id_projeto, self.ITEM_TIPO_ARQUIVO_TERMO_OUTORGA)
+
+    def get_arquivo(self, id_projeto, tipo_arquivo):
+        """
+        Retorna um dicionário contendo o arquivo que satisfaça o id_projeto e tipo_arquivo e ou None, caso tal arquivo não exista
+        :param id_projeto: id_projeto relacionado ao arquivo
+        :param tipo_arquivo: tipo do arquivo
+        :return: dicionário contendo {NOME_ARQUIVO:, file:, CONTEUDO_ARQUIVO.
+        """
+        params = {
+            'ID_PROJETO': id_projeto,
+            'TIPO_ARQUIVO_ITEM': tipo_arquivo,
+            'LMIN': 0,
+            'LMAX': 1,
+            'ORDERBY':'ID_ARQUIVO_PROJ DESC'
+        }
+
+        fields = ["NOME_ARQUIVO", "CONTEUDO_ARQUIVO"]
+        try:
+            arquivo = self.api.get(self.path, params, fields, 0).content
+        except (ValueError, AttributeError):
+            arquivo = None
+        return arquivo
+
+    def salvar_arquivo(self, nome_arquivo, arquivo, id_projeto, tipo_arquivo):
+        """
+        :type arquivo: FieldStorage
+        :param arquivo: Um arquivo correspondente a um projeto que foi enviado para um formulário
+        :type projeto: int/string
+        :param projeto: Um id de projeto
+        :rtype : dict
+        """
+        arquivo_proj = {
+            "ID_PROJETO": id_projeto,
+            "DT_INCLUSAO": date.today(),
+            "TIPO_ARQUIVO_TAB": 6005,
+            "TIPO_ARQUIVO_ITEM": tipo_arquivo,
+            "NOME_ARQUIVO": nome_arquivo,
+            "CONTEUDO_ARQUIVO": SIE.handle_blob(arquivo)
+        }
+
+        try:
+            novo_arquivo_proj = self.api.post(self.path, arquivo_proj)
+            arquivo_proj.update({"ID_ARQUIVO_PROJ": novo_arquivo_proj.insertId}) #????
+        except POSTException:
+            arquivo_proj = None
+        return arquivo_proj
+
+    @deprecated
     def salvarArquivo(self, arquivo, projeto, funcionario, TIPO_ARQUIVO_ITEM):
         """
 
@@ -335,12 +423,48 @@ class SIEArquivosProj(SIE):
             "CONTEUDO_ARQUIVO": self.__conteudoDoArquivo(arquivo)
         }
         # TODO remover comentários quando BLOB estiver sendo salvo no DB2
-        # novoArquivoProj = self.api.performPOSTRequest(self.path, arquivoProj)
-        # arquivoProj.update({"ID_ARQUIVO_PROJ": novoArquivoProj.insertId})
-
+        #novoArquivoProj = self.api.performPOSTRequest(self.path, arquivoProj)
+        #arquivoProj.update({"ID_ARQUIVO_PROJ": novoArquivoProj.insertId})
+        self.salvarDB2BLOB(arquivoProj)
         self.salvarCopiaLocal(arquivo, arquivoProj, funcionario)
 
         return arquivoProj
+
+    def salvarDB2BLOB(self, arquivoProj):
+
+        ID_ARQUIVO_PROJ = 'NEXT VALUE FOR DBSM.SEQ_ARQUIVOS_PROJ'
+        CONCORRENCIA = '999'
+        ENDERECO_FISICO = str(current.request.client)
+
+        current.dbSie.executesql(""" SELECT ID_ARQUIVO_PROJ FROM NEW TABLE(
+																		INSERT INTO DBSM.ARQUIVOS_PROJ(
+																		                        ID_ARQUIVO_PROJ,
+																								ID_PROJETO,
+																								DT_INCLUSAO,
+																								TIPO_ARQUIVO_TAB,
+																								TIPO_ARQUIVO_ITEM,
+																								NOME_ARQUIVO,
+																								CONTEUDO_ARQUIVO,
+																								DT_ALTERACAO,
+																								HR_ALTERACAO,
+																								COD_OPERADOR,
+																								CONCORRENCIA)
+																								VALUES
+																								(
+																								""" +ID_ARQUIVO_PROJ + """,
+																								""" +arquivoProj["ID_PROJETO"] + """,
+																								CURRENT_DATE,
+																								""" + arquivoProj["TIPO_ARQUIVO_TAB"] + """,
+																								"""+arquivoProj["TIPO_ARQUIVO_ITEM"]+""",
+																								'""" + arquivoProj["NOME_ARQUIVO"] + """',
+																								""" + arquivoProj["CONTEUDO_ARQUIVO"] + """,
+																								CURRENT_DATE,
+																								CURRENT_TIME,
+																								'1',
+																								""" + CONCORRENCIA + """
+																								)
+																		)""", as_dict=True)
+        return dict()
 
     def salvarCopiaLocal(self, arquivo, arquivoProj, funcionario):
         """
@@ -381,12 +505,22 @@ class SIEArquivosProj(SIE):
 
 
 class SIEClassificacoesPrj(SIE):
+
+    COD_CLASSIFICACAO_PRJ_CAMARA_PESQUISA = 33
+    COD_CLASSIFICACAO_PRJ_CLASSIFICACAO_CNPQ = 3
+    COD_CLASSIFICACAO_PRJ_COMITE_ETICA = 32
+    COD_CLASSIFICACAO_PRJ_GRUPO_CNPQ = 4
+    ITEM_PARECER_COMITE_ETICA_NAO_SE_APLICA = 40172
+
     def __init__(self):
         super(SIEClassificacoesPrj, self).__init__()
         self.path = "CLASSIFICACOES_PRJ"
 
     def getClassificacoesPrj(self, classificacaoItem, codigo):
         """
+        Talvez devesse se chamar get_classificacao_projeto
+
+
         CLASSIFICACAO_ITEM  => 1 - Tipos de Projetos, 41 - Disciplina vinculada
         CODIGO PARA CLASSIFICACAO_ITEM = 1 => 1 - Ensino, 2 - Pesquisa, 3 - Extensão, 4 - Desenvolvimento institucional
 
@@ -407,6 +541,63 @@ class SIEClassificacoesPrj(SIE):
         ]
         return self.api.performGETRequest(self.path, params, fields, cached=self.cacheTime).content
 
+    def get_classificacoes_proj(self, classificacao_item):
+        """
+        CLASSIFICACAO_ITEM  => 1 - Tipos de Projetos, 41 - Disciplina vinculada
+        CODIGO PARA CLASSIFICACAO_ITEM = 1 => 1 - Ensino, 2 - Pesquisa, 3 - Extensão, 4 - Desenvolvimento institucional
+
+        :type classificacaoItem: int
+        :type codigo: int
+        :param classificacaoItem:
+        :param codigo: COD_DISCIPLINA de uma disciplina do SIE
+        :rtype : list
+        :return: Uma lista de dicionários com os tipos de projetos
+        """
+        params = {
+            'CLASSIFICACAO_ITEM': classificacao_item
+        }
+        params.update({
+            'LMIN': 0,
+            'LMAX': 9999
+        })
+        fields = ["ID_CLASSIFICACAO", "DESCRICAO","CODIGO","ID_CLASSIF_SUP"]
+        return self.api.performGETRequest(self.path, params, fields, cached=self.cacheTime).content
+
+    def get_camaras_pesquisa(self):
+        try:
+            camaras_dict = self.get_classificacoes_proj(self.COD_CLASSIFICACAO_PRJ_CAMARA_PESQUISA)
+            camaras = [ (d[u'ID_CLASSIFICACAO'],d[u'DESCRICAO'].encode('utf-8')) for d in camaras_dict]
+        except AttributeError:
+            camaras = None
+
+        return camaras
+
+    def get_classificacoes_cnpq(self):
+        try:
+            classif_dict = self.get_classificacoes_proj(self.COD_CLASSIFICACAO_PRJ_CLASSIFICACAO_CNPQ)
+            classif = [ (d[u'ID_CLASSIFICACAO'],d[u'DESCRICAO'].encode('utf-8'),d[u'ID_CLASSIF_SUP']) for d in classif_dict]
+        except AttributeError:
+            classif = None
+
+        return classif
+
+    def get_grupos_cnpq(self):
+        try:
+            grupo_dict = self.get_classificacoes_proj(self.COD_CLASSIFICACAO_PRJ_GRUPO_CNPQ)
+            grupos = [ (d[u'ID_CLASSIFICACAO'],d[u'DESCRICAO'].encode('utf-8'),d[u'ID_CLASSIF_SUP']) for d in grupo_dict]
+        except AttributeError:
+            grupos = None
+
+        return grupos
+
+    def get_comites_etica(self):
+        try:
+            comites_dict = self.get_classificacoes_proj(self.COD_CLASSIFICACAO_PRJ_COMITE_ETICA)
+            comites = [ (d[u'ID_CLASSIFICACAO'],d[u'DESCRICAO'].encode('utf-8')) for d in comites_dict]
+        except AttributeError:
+            comites = None
+
+        return comites
 
 class SIEParticipantesProjs(SIE):
     def __init__(self):
@@ -594,7 +785,6 @@ class SIEParticipantesProjs(SIE):
         self.api.performPUTRequest(self.path, params)
         SIEBolsistas().inativarBolsista(participante['ID_BOLSISTA'])
 
-
 class SIECursosDisciplinas(SIE):
     def __init__(self):
         super(SIECursosDisciplinas, self).__init__()
@@ -655,6 +845,7 @@ class SIEClassifProjetos(SIE):
         super(SIEClassifProjetos, self).__init__()
         self.path = "CLASSIF_PROJETOS"
 
+    @deprecated
     def criarClassifProjetos(self, ID_PROJETO, ID_CLASSIFICACAO):
         """
 
@@ -670,13 +861,15 @@ class SIEClassifProjetos(SIE):
         }
 
         try:
-            return self.api.performPOSTRequest(self.path, classifProj)
+            return self.api.post(self.path, classifProj)
         except Exception:
             current.session.flash = "Não foi possível criar uma nova classificação para o projeto."
 
+    @deprecated
     def removerClassifProjetos(self, ID_CLASSIF_PROJETO):
-        self.api.performDELETERequest(self.path, {"ID_CLASSIF_PROJETO": ID_CLASSIF_PROJETO})
+        self.api.delete(self.path, {"ID_CLASSIF_PROJETO": ID_CLASSIF_PROJETO})
 
+    @deprecated
     def removerClassifProjetosDeProjeto(self, ID_PROJETO):
         params = {
             "ID_PROJETO": ID_PROJETO,
@@ -690,6 +883,7 @@ class SIEClassifProjetos(SIE):
         except ValueError:
             print "Nenhum CLASSIF_PROJETOS a deletar"
 
+    @deprecated
     def getClassifProjetos(self, ID_PROJETO):
         params = {
             "ID_PROJETO": ID_PROJETO,
@@ -701,12 +895,14 @@ class SIEClassifProjetos(SIE):
         except ValueError:
             return None
 
+    @deprecated
     def getClassifProjetosEnsino(self, ID_PROJETO):
         try:
             return self.getClassifProjetos(ID_PROJETO).content[0]
         except ValueError:
             return None
 
+    @deprecated
     def atualizar(self, ID_CLASSIF_PROJETO, ID_CLASSIFICACAO):
         self.db.log_admin.insert(
                     acao='update',
@@ -722,6 +918,87 @@ class SIEClassifProjetos(SIE):
             'ID_CLASSIFICACAO': ID_CLASSIFICACAO
         })
 
+    def atualizar_classificacoes(self, id_projeto, classificacoes, grupos, comite, camara):
+        """
+
+        :param id_projeto:
+        :param classificacoes:
+        :param grupos:
+        :param comite:
+        :param camara:
+        :return:
+        """
+
+        #pior maneira de se fazer isso: deletar o que tem, criar de novo.
+        self.removerClassifProjetosDeProjeto(id_projeto)  #TRY???
+
+        todas_classificacoes = []
+        todas_classificacoes.extend(classificacoes) if type(classificacoes) == list else todas_classificacoes.append(classificacoes)
+        todas_classificacoes.extend(grupos) if type(grupos) == list else todas_classificacoes.append(grupos)
+        todas_classificacoes.extend([comite])
+        todas_classificacoes.extend([camara])
+
+        for classificacao in todas_classificacoes:
+            self.criarClassifProjetos(id_projeto, classificacao)
+
+        return True
+
+    def get_classif_projeto(self, params):
+
+        params.update({
+            "LMIN": 0,
+            "LMAX": 9999,
+        })
+        try:
+            res = self.api.get("V_PROJETOS_CLASSIFICACOES", params, cached=0)
+            return res.content if res is not None else []
+        except (AttributeError, ValueError):
+            return []
+
+
+    def get_classificacoes_cnpq(self,id_projeto):
+
+        params = {
+            "ID_PROJETO": id_projeto,
+            "CLASSIFICACAO_ITEM": SIEClassificacoesPrj.COD_CLASSIFICACAO_PRJ_CLASSIFICACAO_CNPQ
+        }
+        classificacoes_cnpq = self.get_classif_projeto(params)
+        if classificacoes_cnpq:
+            ids_classificacoes_cnpq = [row[u'ID_CLASSIFICACAO'] for row in classificacoes_cnpq]
+            return ids_classificacoes_cnpq
+        return []
+
+    def get_grupos_cnpq(self, id_projeto):
+
+        params = {
+            "ID_PROJETO": id_projeto,
+            "CLASSIFICACAO_ITEM": SIEClassificacoesPrj.COD_CLASSIFICACAO_PRJ_GRUPO_CNPQ
+        }
+        grupos_cnpq = self.get_classif_projeto(params)
+        if grupos_cnpq:
+            ids_grupos_cnpq = [row[u'ID_CLASSIFICACAO'] for row in grupos_cnpq]
+            return ids_grupos_cnpq
+        return []
+
+    def get_camara_pesquisa(self,id_projeto):
+        params = {
+            "ID_PROJETO": id_projeto,
+            "CLASSIFICACAO_ITEM": SIEClassificacoesPrj.COD_CLASSIFICACAO_PRJ_CAMARA_PESQUISA
+        }
+        camara_pesquisa = self.get_classif_projeto(params)
+        if camara_pesquisa:
+            return camara_pesquisa[0][u"ID_CLASSIFICACAO"]
+        return None
+
+    def get_comite_etica(self,id_projeto):
+        params = {
+            "ID_PROJETO": id_projeto,
+            "CLASSIFICACAO_ITEM": SIEClassificacoesPrj.COD_CLASSIFICACAO_PRJ_COMITE_ETICA
+        }
+        comite_etica = self.get_classif_projeto(params)
+        if comite_etica:
+            return comite_etica[0][u"ID_CLASSIFICACAO"]
+        return None
 
 class SIEOrgaosProjetos(SIE):
     def __init__(self):

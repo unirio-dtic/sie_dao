@@ -4,6 +4,7 @@ from time import strftime
 
 from sie import SIE
 from gluon import current
+from deprecation import deprecated
 
 
 __all__ = [
@@ -21,6 +22,7 @@ class SIEDocumentos(SIE):
         super(SIEDocumentos, self).__init__()
         self.path = "DOCUMENTOS"
 
+    @deprecated
     def proximoNumeroProcesso(self):
         """
         Número do processo é formado através da concatenação de um ID_TIPO_DOC, um sequencial e o ano do documento
@@ -34,6 +36,66 @@ class SIEDocumentos(SIE):
         NUM_ULTIMO_DOC = str(numeroTipoDoc.proximoNumeroTipoDocumento()).zfill(4)
         return "%d%s/%d" % (self.ID_TIPO_DOC, NUM_ULTIMO_DOC, ano)
 
+
+    def criar_documento(self, tipo_doc, num_processo, funcionario):
+        """
+        SITUACAO_ATUAL = 1      => Um novo documento sempre se inicia com 1
+        TIPO_PROPRIETARIO = 20  => Indica restrição de usuários
+        TIPO_ORIGEM = 20        => Recebe mesmo valor de TIPO_PROPRIETARIO
+        SEQUENCIA = 1           => Indica que é o primeiro passo de tramitação
+        TIPO_PROCEDENCIA = S    => Indica servidor
+        TIPO_INTERESSADO = S    => Indica servidor
+
+        IND_ELIMINADO, IND_AGENDAMENTO, IND_RESERVADO,
+        IND_EXTRAVIADO, TEMPO_ESTIMADO => Valores fixos (Seguimos documento com recomendações da síntese)
+
+        :rtype : dict
+        :return: Um dicionário contendo uma entrada da tabela DOCUMENTOS
+        """
+        documento = {
+            "ID_TIPO_DOC": tipo_doc,
+            "ID_PROCEDENCIA": funcionario["ID_CONTRATO_RH"],
+            "ID_PROPRIETARIO": funcionario["ID_USUARIO"],
+            "ID_CRIADOR": funcionario["ID_USUARIO"],
+            "NUM_PROCESSO": num_processo,
+            "TIPO_PROCEDENCIA": "S",
+            "TIPO_INTERESSADO": "S",
+            "ID_INTERESSADO": funcionario["ID_CONTRATO_RH"],
+            "SITUACAO_ATUAL": 1,
+            "TIPO_PROPRIETARIO": 20,
+            "TIPO_ORIGEM": 20,
+            "DT_CRIACAO": date.today(),
+            "IND_ELIMINADO": "N",
+            "IND_AGENDAMENTO": "N",
+            "IND_RESERVADO": "N",
+            "IND_EXTRAVIADO": "N",
+            "TEMPO_ESTIMADO": 1,
+            "SEQUENCIA": 1
+        }
+        try:
+            novoDocumento = self.api.performPOSTRequest(self.path, documento)
+            try:
+                documento.update({"ID_DOCUMENTO": novoDocumento.insertId})
+                tramitacao = SIETramitacoes(documento)
+                novaTramitacao = tramitacao.criarTramitacao()
+
+                tramitacao.tramitarDocumento(
+                    novaTramitacao,
+                    funcionario,
+                    SIEFluxos().getFluxoFromDocumento(documento)
+                )
+                return documento
+
+            except Exception as e:
+                session.flash = "Não foi possível criar uma tramitação para o documento %d" % novoDocumento.insertId
+                raise e
+        except Exception:
+            # TODO deletaNovoDocumento
+            # TODO decrementar proximoNumeroTipoDocumento
+            if not current.session.flash:
+                current.session.flash = "Não foi possível criar um novo documento"
+
+    @deprecated
     def criarDocumento(self, funcionario):
         """
         ID_TIPO_DOC = 215       => Projetos de Ensino

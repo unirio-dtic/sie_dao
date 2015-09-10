@@ -1,4 +1,6 @@
 from gluon import current
+import os
+import base64
 
 __all__ = [
     "SIEAlunos"
@@ -22,3 +24,11 @@ class SIE(object):
         self.api = api
         self.db = current.db
         self.cacheTime = 86400  # Um dia
+
+    @staticmethod
+    def handle_blob(arquivo):
+        caminho_arquivo = os.path.join(current.request.folder, 'uploads', arquivo)
+        fstream = open(caminho_arquivo, mode="rb")
+        file_b64 = base64.b64encode(fstream.read())
+        fstream.close()
+        return file_b64
