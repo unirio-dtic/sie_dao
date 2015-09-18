@@ -43,16 +43,35 @@ class SIEFuncionarios(SIE):
             raise e
 
 class SIEDocentes(SIE):
+
+    COD_ATIVO = 1
+
     def __init__(self):
         super(SIEDocentes, self).__init__()
         self.path = "V_DOCENTES"
 
     def getDocentes(self):
         params = {
-            "SITUACAO_ITEM": 1
+            "SITUACAO_ITEM": self.COD_ATIVO
         }
         fields = [
             "MATR_EXTERNA",
             "NOME_DOCENTE"
         ]
-        return self.api.performGETRequest(self.path, params, fields)
+        return self.api.get(self.path, params, fields)
+
+    def get_docente(self,cpf):
+        params = {
+            "SITUACAO_ITEM": self.COD_ATIVO,
+            "CPF":cpf
+        }
+        fields = [
+            "MATR_EXTERNA",
+            "NOME_DOCENTE"
+        ]
+
+        try:
+            res = self.api.get(self.path, params, cached=self.cacheTime)
+            return res.content if res is not None else []
+        except ValueError:
+            return []

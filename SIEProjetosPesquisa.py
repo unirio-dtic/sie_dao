@@ -140,21 +140,17 @@ class SIEProjetosPesquisa(SIEProjetos):
         :return: Um dicionário contendo a entrada uma nova entrada da tabela PROJETOS
         """
 
-        projeto.update({
-            "EVENTO_TAB": self.COD_TABELA_TIPO_EVENTO,
-            "EVENTO_ITEM": self.ITEM_TIPO_EVENTO_NAO_SE_APLICA,
-            "TIPO_PUBLICO_TAB": self.COD_TABELA_TIPO_PUBLICO_ALVO,
-            "TIPO_PUBLICO_ITEM": self.ITEM_TIPO_PUBLICO_3_GRAU,
-            "ACESSO_PARTICIP": self.ACESSO_PARTICIPANTES_APENAS_COORDENADOR,
-            "PAGA_BOLSA": self.NAO_PAGA_BOLSA,
-            "AVALIACAO_TAB": self.COD_TABELA_AVALIACAO_PROJETOS_INSTITUICAO,
-            "AVALIACAO_ITEM": self.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE,
-            'ID_CLASSIFICACAO': self.ITEM_CLASSIFICACAO_PROJETO_PESQUISA,
-            'SITUACAO_ITEM': self.COD_TABELA_SITUACAO,
-            'SITUACAO_TAB': self.ITEM_SITUACAO_TRAMITE_REGISTRO,
-            'FUNDACAO_TAB': self.COD_TABELA_FUNDACOES,
-            "DT_REGISTRO": date.today(),
-        })
+        projeto_padrao = {"EVENTO_TAB": self.COD_TABELA_TIPO_EVENTO, "EVENTO_ITEM": self.ITEM_TIPO_EVENTO_NAO_SE_APLICA,
+                  "TIPO_PUBLICO_TAB": self.COD_TABELA_TIPO_PUBLICO_ALVO,
+                  "TIPO_PUBLICO_ITEM": self.ITEM_TIPO_PUBLICO_3_GRAU,
+                  "ACESSO_PARTICIP": self.ACESSO_PARTICIPANTES_APENAS_COORDENADOR, "PAGA_BOLSA": self.NAO_PAGA_BOLSA,
+                  "AVALIACAO_TAB": self.COD_TABELA_AVALIACAO_PROJETOS_INSTITUICAO,
+                  "AVALIACAO_ITEM": self.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE,
+                  'ID_CLASSIFICACAO': self.ITEM_CLASSIFICACAO_PROJETO_PESQUISA,
+                  'SITUACAO_ITEM': self.COD_TABELA_SITUACAO, 'SITUACAO_TAB': self.ITEM_SITUACAO_TRAMITE_REGISTRO,
+                  'FUNDACAO_TAB': self.COD_TABELA_FUNDACOES, "DT_REGISTRO": date.today(), }
+
+        projeto.update(projeto_padrao)
 
         try:
             novo_projeto = self.api.post(self.path, projeto)
@@ -222,30 +218,57 @@ class SIEProjetosPesquisa(SIEProjetos):
         params = {"LMIN": 0,
                   "LMAX": 99999,
                   "NOME": query,
-                  "ESTADO_ITEM": self.ITEM_ESTADO_REGULAR  # Procura apenas por "regularizados"
+
+                  #"ESTADO_ITEM": self.ITEM_ESTADO_REGULAR  # Procura apenas por "regularizados"
                   }
 
-        fields = ['ID_ORIGEM','ORIGEM','NOME_UP','VINCULO']
+        fields = ['NOME','ID_PESSOA','MATRICULA','VINCULO_DESCRICAO']
         try:
-            res = self.api.performGETRequest("V_COMUNIDADE_INST", params, cached=self.cacheTime)
+            res = self.api.performGETRequest("V_PROJETOS_PESSOAS", params, cached=0)
             return res.content if res is not None else []
         except ValueError:
             return []
 
-    def get_membro_comunidade(self, id_origem, origem):
+    def get_membro_comunidade(self, id_pessoa, matricula):
+
+
         params = {"LMIN": 0,
                   "LMAX": 1,
-                  "ID_ORIGEM": id_origem,
-                  "ORIGEM": origem,
-                  "ESTADO_ITEM": self.ITEM_ESTADO_REGULAR  # Procura apenas por "regularizados"
+                  "ID_PESSOA": id_pessoa,
+                  #"ESTADO_ITEM": self.ITEM_ESTADO_REGULAR  # Procura apenas por "regularizados"
                   }
+        if matricula:
+            params.update({
+                "MATRICULA":matricula
+            })
 
-        # fields = {}
         try:
-            res = self.api.performGETRequest("V_COMUNIDADE_INST", params, cached=self.cacheTime)
+            res = self.api.performGETRequest("V_PROJETOS_PESSOAS", params, cached=self.cacheTime)
             return res.content[0] if res is not None else {}
         except ValueError:
             return {}
+
+    def get_projetos(self,coordenador=None):
+
+
+        params ={
+            "LMIN": 0,
+            "LMAX": 9999,
+            'ID_CLASSIFICACAO': self.ITEM_CLASSIFICACAO_PROJETO_PESQUISA,
+            'ID_RH_GESTOR': 8401267, #  TODO Hard-coded -- Raul
+
+        }
+
+        if coordenador:
+            params.update({
+                'ID_GESTOR_RH': coordenador
+            })
+
+        try:
+            res = self.api.get(self.path, params, cached=0)
+            return res.content if res is not None else []
+        except ValueError:
+            return []
 
 
 class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):

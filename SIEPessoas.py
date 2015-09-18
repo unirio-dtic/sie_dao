@@ -22,9 +22,34 @@ class SIEPessoas(SIE):
         :return:
         """
         try:
+
             pessoa = self.api.post(self.path, params)
         except POSTException:
             pessoa = None
         return pessoa
 
 
+class SIEDocPessoas(SIE):
+    COD_CPF = 1
+
+    def __init__(self):
+        super(SIEDocPessoas, self).__init__()
+        self.path = 'DOC_PESSOAS'
+
+    def existe_cpf_cadastrado(self,cpf):
+
+        params ={
+            'LMIN': 0,
+            'LMAX': 1,
+            'ID_TDOC_PESSOA':self.COD_CPF,
+            'NUMERO_DOCUMENTO': cpf
+        }
+
+        try:
+            res = self.api.get(self.path,params,cached=0)
+            if res is not None and res.content:
+                return True
+            else:
+                return False
+        except (ValueError,AttributeError):
+            return False
