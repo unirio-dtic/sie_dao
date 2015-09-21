@@ -4,14 +4,13 @@ from sie import SIE
 __all__ = ["SIEFuncionarioID", "SIEFuncionarios", "SIEDocentes"]
 
 class SIEFuncionarioID(SIE):
-    def __init__(self, CPF):
+    def __init__(self):
         super(SIEFuncionarioID, self).__init__()
         self.path = "V_FUNCIONARIO_IDS"
-        self.CPF = CPF
         self.cacheTime *= 10
 
-    def getFuncionarioIDs(self):
-        return self.api.performGETRequest(self.path, params={"CPF": self.CPF}, cached=self.cacheTime).content[0]
+    def getFuncionarioIDs(self, cpf):
+        return self.api.performGETRequest(self.path, params={"CPF": cpf}, cached=self.cacheTime).content[0]
 
 
 class SIEFuncionarios(SIE):

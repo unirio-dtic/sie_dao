@@ -16,6 +16,8 @@ class SIEPessoas(SIE):
         return self.api.performGETRequest(self.path, params, cached=self.cacheTime).content[0]
 
 
+
+
     def cadastrar_pessoa(self, params):
         """
         :param params: Parâmetros de inserção no banco de dados obrigatórios: Nome, Nome_UP, Nome Social e Natureza Jurídica
@@ -53,3 +55,19 @@ class SIEDocPessoas(SIE):
                 return False
         except (ValueError,AttributeError):
             return False
+
+
+class SIEUsuarios(SIE):
+
+    def __init__(self):
+        super(SIEUsuarios,self).__init__()
+        self.path = "USUARIOS"
+
+    def get_usuario(self,cpf):
+
+        params ={
+            'LMIN': 0,
+            'LMAX': 1,
+            'LOGIN':cpf
+        }
+        return self.api.get(self.path, params, cached=self.cacheTime).content[0]
