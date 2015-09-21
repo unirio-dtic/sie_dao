@@ -222,7 +222,7 @@ class SIEProjetosPesquisa(SIEProjetos):
                   #"ESTADO_ITEM": self.ITEM_ESTADO_REGULAR  # Procura apenas por "regularizados"
                   }
 
-        fields = ['NOME','ID_PESSOA','MATRICULA','VINCULO_DESCRICAO']
+        fields = ['NOME','ID_PESSOA','MATRICULA','DESCRICAO_VINCULO']
         try:
             res = self.api.performGETRequest("V_PROJETOS_PESSOAS", params, cached=0)
             return res.content if res is not None else []
