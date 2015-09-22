@@ -77,6 +77,7 @@ class SIEProjetosPesquisa(SIEProjetos):
                     'keyword_3': projeto_bd[u'PALAVRA_CHAVE03'].encode('utf-8') if projeto_bd[u'PALAVRA_CHAVE03'] is not None else "",
                     'keyword_4': projeto_bd[u'PALAVRA_CHAVE04'].encode('utf-8') if projeto_bd[u'PALAVRA_CHAVE04'] is not None else "",
                     "financeiro_apoio_financeiro": False if projeto_bd[u'FUNDACAO_ITEM'] == SIEProjetosPesquisa().ITEM_FUNDACOES_NAO_SE_APLICA else True,
+                    "carga_horaria": projeto_bd[u'CARGA_HORARIA'],
                     "financeiro_termo_outorga": termo, #TODO
                     "financeiro_valor_previsto": projeto_bd[u'VL_PREVISTO'],
                     "financeiro_agencia_fomento": projeto_bd[u'FUNDACAO_ITEM'],
@@ -106,7 +107,6 @@ class SIEProjetosPesquisa(SIEProjetos):
             'DT_INICIAL': form.vars['vigencia_inicio'],
             'FUNDACAO_ITEM': form.vars[
                 'financeiro_agencia_fomento'] if tem_apoio_financeiro else SIEProjetosPesquisa().ITEM_FUNDACOES_NAO_SE_APLICA,
-            'ID_RH_GESTOR': '8401267',  # TODO Hard-coded Raul!
             'PALAVRA_CHAVE01': form.vars['keyword_1'],
             'PALAVRA_CHAVE02': form.vars['keyword_2'],
             'PALAVRA_CHAVE03': form.vars['keyword_3'],
@@ -255,7 +255,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             "LMIN": 0,
             "LMAX": 9999,
             'ID_CLASSIFICACAO': self.ITEM_CLASSIFICACAO_PROJETO_PESQUISA,
-            'ID_RH_GESTOR': 8401267, #  TODO Hard-coded -- Raul
+            #'ID_RH_GESTOR': 8401267, #  TODO Hard-coded -- Raul
 
         }
 
@@ -270,10 +270,29 @@ class SIEProjetosPesquisa(SIEProjetos):
         except ValueError:
             return []
 
+    def get_coordenador(self,id_projeto):
+        """
+        Retorna dicionário com o participantes de id_participante
+        :return: dict com informações dos participantes, None caso contrário.
+        """
+        params = {"LMIN": 0,
+                  "LMAX": 1,
+                  "ID_PROJETO": id_projeto,
+                  "FUNCAO_ITEM": SIEProjetosPesquisa.ITEM_FUNCOES_PROJ_COORDENADOR
+                  }
+        try:
+            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cached=0)
+            return res.content[0] if res is not None else None
+        except ValueError:
+            return None
+
+
+
 
 class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
 
     COD_SITUACAO_ATIVO = "A"
+
 
     def __init__(self):
         super(SIEParticipantesProjsPesquisa, self).__init__()
