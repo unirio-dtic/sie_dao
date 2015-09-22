@@ -15,9 +15,6 @@ class SIEPessoas(SIE):
         }
         return self.api.performGETRequest(self.path, params, cached=self.cacheTime).content[0]
 
-
-
-
     def cadastrar_pessoa(self, params):
         """
         :param params: Parâmetros de inserção no banco de dados obrigatórios: Nome, Nome_UP, Nome Social e Natureza Jurídica

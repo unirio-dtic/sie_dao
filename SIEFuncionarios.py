@@ -41,6 +41,9 @@ class SIEFuncionarios(SIE):
             session.flash = "Não foi possível encontrar o funcionário."
             raise e
 
+    def get_funcionario(self, cpf):
+        return self.api.get("V_FUNCIONARIOS", params={"CPF": cpf}, cached=self.cacheTime).content[0]
+
 class SIEDocentes(SIE):
 
     COD_ATIVO = 1
