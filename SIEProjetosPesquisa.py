@@ -224,7 +224,22 @@ class SIEProjetosPesquisa(SIEProjetos):
 
         fields = ['NOME','ID_PESSOA','MATRICULA','DESCRICAO_VINCULO']
         try:
-            res = self.api.performGETRequest("V_PROJETOS_PESSOAS", params, cached=0)
+            res = self.api.get("V_PROJETOS_PESSOAS", params, cached=0)
+            return res.content if res is not None else []
+        except ValueError:
+            return []
+
+    def get_orgaos_like(self, query):
+        params = {"LMIN": 0,
+                  "LMAX": 99999,
+                  "NOME_UNIDADE": query,
+
+                  #"ESTADO_ITEM": self.ITEM_ESTADO_REGULAR  # Procura apenas por "regularizados"
+                  }
+
+        fields = ['NOME_UNIDADE','ID_ORIGEM','ORIGEM']
+        try:
+            res = self.api.get("V_ORGAOS_PROJ", params, cached=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -248,7 +263,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         except ValueError:
             return {}
 
-    def get_projetos(self,coordenador=None):
+    def get_projetos(self,cpf_coordenador=None):
 
 
         params ={
@@ -259,13 +274,13 @@ class SIEProjetosPesquisa(SIEProjetos):
 
         }
 
-        if coordenador:
+        if cpf_coordenador:
             params.update({
-                'ID_GESTOR_RH': coordenador
+                "COORDENADOR_CPF": cpf_coordenador
             })
 
         try:
-            res = self.api.get(self.path, params, cached=0)
+            res = self.api.get("V_PROJETOS_DADOS", params, cached=0)
             return res.content if res is not None else []
         except ValueError:
             return []
