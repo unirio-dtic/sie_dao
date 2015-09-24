@@ -13,7 +13,7 @@ class SIEProcesso(SIE):
         self.lmin = 0
         self.lmax = 1000
 
-    def getContent(self, params=None):
+    def get_content(self, params=None):
         """
         :rtype : APIPOSTResponse
         :type params: dict
@@ -37,14 +37,14 @@ class SIEProcessoDados(SIEProcesso):
         super(SIEProcessoDados, self).__init__()
         self.path = "V_PROCESSOS_DADOS"
 
-    def getProcessos(self, params=None):
+    def get_processos(self, params=None):
         if not params:
             params = {}
-        return self.getContent(params)
+        return self.get_content(params)
 
-    def getProcessoDados(self, ID_DOCUMENTO):
-        params = {"ID_DOCUMENTO": ID_DOCUMENTO}
-        content = self.getProcessos(params)
+    def get_processo_dados(self, id_documento):
+        params = {"ID_DOCUMENTO": id_documento}
+        content = self.get_processos(params)
         return content[0]
 
 
@@ -53,6 +53,6 @@ class SIEProcessoTramitacoes(SIEProcesso):
         super(SIEProcessoTramitacoes, self).__init__()
         self.path = "V_PROCESSOS_TRAMITACOES"
 
-    def getTramitacoes(self, NUM_PROCESSO):
-        params = {"NUM_PROCESSO": NUM_PROCESSO, "ORDERBY": "DT_ENVIO"}
-        return self.getContent(params)
+    def get_tramitacoes(self, num_processo):
+        params = {"NUM_PROCESSO": num_processo, "ORDERBY": "DT_ENVIO"}
+        return self.get_content(params)
