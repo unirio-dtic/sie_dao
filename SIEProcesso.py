@@ -22,7 +22,10 @@ class SIEProcesso(object):
         params.update(limits)
 
         processos = self.api.performGETRequest(self.path, params, cached=86400)
-        return processos.content
+        if processos:
+            return processos.content
+        else:
+            return list()
 
 
 class SIEProcessoDados(SIEProcesso):
