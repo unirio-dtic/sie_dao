@@ -1,23 +1,25 @@
+# -*- coding: utf-8 -*-
 __author__ = 'carlos.faruolo'
 
-# -*- coding: utf-8 -*-
-from gluon import current
+from . import SIE
 
 __all__ = ["SIEProcesso", "SIEProcessoDados", "SIEProcessoTramitacoes"]
 
 
-class SIEProcesso(object):
+class SIEProcesso(SIE):
     def __init__(self):
-        self.api = current.api
+        super(SIEProcesso, self).__init__()
         self.path = NotImplementedError
         self.lmin = 0
         self.lmax = 1000
 
-    def getContent(self, params={}):
+    def getContent(self, params=None):
         """
-
+        :rtype : APIPOSTResponse
         :type params: dict
         """
+        if not params:
+            params = {}
         limits = {"LMIN": self.lmin, "LMAX": self.lmax}
         for k, v in params.items():
             params[k] = str(params[k]).upper()
@@ -35,7 +37,9 @@ class SIEProcessoDados(SIEProcesso):
         super(SIEProcessoDados, self).__init__()
         self.path = "V_PROCESSOS_DADOS"
 
-    def getProcessos(self, params={}):
+    def getProcessos(self, params=None):
+        if not params:
+            params = {}
         return self.getContent(params)
 
     def getProcessoDados(self, ID_DOCUMENTO):
