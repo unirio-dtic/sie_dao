@@ -1,7 +1,7 @@
 # coding=utf-8
 import base64
 from datetime import date, datetime
-from deprecation import deprecated
+from deprecator import deprecate
 from unirio.api.apiresult import APIException, POSTException
 from sie import SIE
 from gluon import current
@@ -172,7 +172,7 @@ class SIEProjetos(SIE):
         if projeto["SITUACAO_ITEM"] in range(1, 10):
             return True
 
-    @deprecated
+    @deprecate
     def salvarProjeto(self, projeto, funcionario):
         """
         EVENTO_TAB              => Tipos de Eventos
@@ -400,7 +400,7 @@ class SIEArquivosProj(SIE):
             arquivo_proj = None
         return arquivo_proj
 
-    @deprecated
+    @deprecate
     def salvarArquivo(self, arquivo, projeto, funcionario, TIPO_ARQUIVO_ITEM):
         """
 
@@ -845,7 +845,7 @@ class SIEClassifProjetos(SIE):
         super(SIEClassifProjetos, self).__init__()
         self.path = "CLASSIF_PROJETOS"
 
-    @deprecated
+    @deprecate
     def criarClassifProjetos(self, ID_PROJETO, ID_CLASSIFICACAO):
         """
 
@@ -865,11 +865,11 @@ class SIEClassifProjetos(SIE):
         except Exception:
             current.session.flash = "Não foi possível criar uma nova classificação para o projeto."
 
-    @deprecated
+    @deprecate
     def removerClassifProjetos(self, ID_CLASSIF_PROJETO):
         self.api.delete(self.path, {"ID_CLASSIF_PROJETO": ID_CLASSIF_PROJETO})
 
-    @deprecated
+    @deprecate
     def removerClassifProjetosDeProjeto(self, ID_PROJETO):
         params = {
             "ID_PROJETO": ID_PROJETO,
@@ -883,7 +883,7 @@ class SIEClassifProjetos(SIE):
         except ValueError:
             print "Nenhum CLASSIF_PROJETOS a deletar"
 
-    @deprecated
+    @deprecate
     def getClassifProjetos(self, ID_PROJETO):
         params = {
             "ID_PROJETO": ID_PROJETO,
@@ -895,14 +895,14 @@ class SIEClassifProjetos(SIE):
         except ValueError:
             return None
 
-    @deprecated
+    @deprecate
     def getClassifProjetosEnsino(self, ID_PROJETO):
         try:
             return self.getClassifProjetos(ID_PROJETO).content[0]
         except ValueError:
             return None
 
-    @deprecated
+    @deprecate
     def atualizar(self, ID_CLASSIF_PROJETO, ID_CLASSIFICACAO):
         raise NotImplementedError
         # self.db.log_admin.insert(
