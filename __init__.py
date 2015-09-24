@@ -11,6 +11,7 @@ __all__ = [
     "SIEProjetos",
     "SIEServidores",
     "SIETabEstruturada",
+    "SIEProcesso"
 ]
 
 

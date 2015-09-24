@@ -3,6 +3,8 @@ __author__ = 'carlos.faruolo'
 # -*- coding: utf-8 -*-
 from gluon import current
 
+__all__ = ["SIEProcesso", "SIEProcessoDados", "SIEProcessoTramitacoes"]
+
 
 class SIEProcesso(object):
     def __init__(self):
