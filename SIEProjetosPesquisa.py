@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from sie.SIETabEstruturada import SIETabEstruturada
-from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj
+from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj, SIEOrgaosProjetos
 from unirio.api.apiresult import POSTException, PUTException, DELETEException, APIException
 from sie.SIEDocumento import SIEDocumentos, SIENumeroTipoDocumento
 from datetime import date, datetime
@@ -16,6 +16,7 @@ class SIEProjetosPesquisa(SIEProjetos):
 
     COD_TABELA_FUNDACOES = 6025          #Fundações
     COD_TABELA_FUNCOES_PROJ = 6003 #Funções Projeto
+    COD_TABELA_FUNCOES_ORGAOS = 6006
     COD_TABELA_TITULACAO = 168          #Titulação
     COD_TABELA_TIPO_EVENTO = 6028      #=> Tipos de Eventos
     COD_TABELA_TIPO_PUBLICO_ALVO = 6002 #=> Público alvo
@@ -199,6 +200,12 @@ class SIEProjetosPesquisa(SIEProjetos):
         # TODO Constantes?
         return SIETabEstruturada().get_drop_down_options(self.COD_TABELA_FUNDACOES, (0, 1,))
 
+    def get_lista_funcoes_orgaos(self):
+        """
+        :return: lista contendo listas ("CodOpcao","NomeOpcao")
+        """
+        return SIETabEstruturada().get_drop_down_options(self.COD_TABELA_FUNCOES_ORGAOS, (0,))
+
 
     def get_lista_funcoes_projeto_pesquisa(self):
         """
@@ -218,8 +225,6 @@ class SIEProjetosPesquisa(SIEProjetos):
         params = {"LMIN": 0,
                   "LMAX": 99999,
                   "NOME": query,
-
-                  #"ESTADO_ITEM": self.ITEM_ESTADO_REGULAR  # Procura apenas por "regularizados"
                   }
 
         fields = ['NOME','ID_PESSOA','MATRICULA','DESCRICAO_VINCULO']
@@ -233,8 +238,6 @@ class SIEProjetosPesquisa(SIEProjetos):
         params = {"LMIN": 0,
                   "LMAX": 99999,
                   "NOME_UNIDADE": query,
-
-                  #"ESTADO_ITEM": self.ITEM_ESTADO_REGULAR  # Procura apenas por "regularizados"
                   }
 
         fields = ['NOME_UNIDADE','ID_ORIGEM','ORIGEM']
@@ -244,13 +247,28 @@ class SIEProjetosPesquisa(SIEProjetos):
         except ValueError:
             return []
 
+    def get_orgao(self, id_origem, origem):
+
+
+        params = {"LMIN": 0,
+                  "LMAX": 1,
+                  "ID_ORIGEM": id_origem,
+                  "ORIGEM": origem
+                  }
+
+
+        try:
+            res = self.api.performGETRequest("V_ORGAOS_PROJ", params, cached=self.cacheTime)
+            return res.content[0] if res is not None else {}
+        except ValueError:
+            return {}
+
     def get_membro_comunidade(self, id_pessoa, matricula):
 
 
         params = {"LMIN": 0,
                   "LMAX": 1,
                   "ID_PESSOA": id_pessoa,
-                  #"ESTADO_ITEM": self.ITEM_ESTADO_REGULAR  # Procura apenas por "regularizados"
                   }
         if matricula:
             params.update({
@@ -270,17 +288,16 @@ class SIEProjetosPesquisa(SIEProjetos):
             "LMIN": 0,
             "LMAX": 9999,
             'ID_CLASSIFICACAO': self.ITEM_CLASSIFICACAO_PROJETO_PESQUISA,
-            #'ID_RH_GESTOR': 8401267, #  TODO Hard-coded -- Raul
 
         }
 
         if cpf_coordenador:
             params.update({
-                "COORDENADOR_CPF": cpf_coordenador
+                "CPF_COORDENADOR": cpf_coordenador
             })
 
         try:
-            res = self.api.get("V_PROJETOS_DADOS", params, cached=0)
+            res = self.api.get("V_PROJETOS_PESQUISA", params, cached=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -302,7 +319,35 @@ class SIEProjetosPesquisa(SIEProjetos):
             return None
 
 
+class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
 
+    COD_SITUACAO_ATIVO = "A"
+
+    def __init__(self):
+        super(SIEOrgaosProjsPesquisa, self).__init__()
+
+    def cadastra_orgao(self,orgao):
+        """
+
+        :param orgao: Um órgão é composto dos seguintes campos:
+            'ID_PROJETO',
+            ID_UNIDADE ou ID_ENT_EXTERNA,
+            "FUNCAO_ORG_ITEM",
+            "DT_INICIAL",
+            "DT_FINAL",
+            "VL_CONTRIBUICAO",
+            "OBS_ORG_PROJETO"
+        :return: APIPostResponse em caso de sucesso, None c.c.
+        """
+        try:
+            orgao.update({
+                'FUNCAO_ORG_TAB': SIEProjetosPesquisa().COD_TABELA_FUNCOES_ORGAOS,
+                'SITUACAO': self.COD_SITUACAO_ATIVO
+            })
+            resultado_consulta = self.api.post(self.path, orgao)
+        except POSTException:
+            resultado_consulta = None
+        return resultado_consulta
 
 class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
 
