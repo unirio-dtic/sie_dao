@@ -11,6 +11,7 @@ __all__ = [
     "SIEProjetos",
     "SIEServidores",
     "SIETabEstruturada",
+    "SIEProcesso"
 ]
 
 
@@ -22,7 +23,6 @@ class SIE(object):
         :param api: UNIRIO API
         """
         self.api = api
-        self.db = current.db
         self.cacheTime = 86400  # Um dia
 
     @staticmethod

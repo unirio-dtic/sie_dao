@@ -1,10 +1,10 @@
 # coding=utf-8
 from datetime import date, timedelta
 from time import strftime
+from gluon import current
+from deprecator import deprecate
 
 from sie import SIE
-from gluon import current
-from deprecation import deprecated
 
 
 __all__ = [
@@ -22,7 +22,7 @@ class SIEDocumentos(SIE):
         super(SIEDocumentos, self).__init__()
         self.path = "DOCUMENTOS"
 
-    @deprecated
+    @deprecate
     def proximoNumeroProcesso(self):
         """
         Número do processo é formado através da concatenação de um ID_TIPO_DOC, um sequencial e o ano do documento
@@ -95,7 +95,7 @@ class SIEDocumentos(SIE):
             if not current.session.flash:
                 current.session.flash = "Não foi possível criar um novo documento"
 
-    @deprecated
+    @deprecate
     def criarDocumento(self, funcionario):
         """
         ID_TIPO_DOC = 215       => Projetos de Ensino
