@@ -904,19 +904,20 @@ class SIEClassifProjetos(SIE):
 
     @deprecated
     def atualizar(self, ID_CLASSIF_PROJETO, ID_CLASSIFICACAO):
-        self.db.log_admin.insert(
-                    acao='update',
-                    valores=ID_CLASSIFICACAO,
-                    tablename='CLASSIF_PROJETOS',
-                    colname='ID_CLASSIFICACAO',
-                    uid=ID_CLASSIF_PROJETO,
-                    user_id=current.auth.user_id,
-                    dt_alteracao=datetime.now()
-            )
-        return self.api.performPUTRequest(self.path, {
-            'ID_CLASSIF_PROJETO': ID_CLASSIF_PROJETO,
-            'ID_CLASSIFICACAO': ID_CLASSIFICACAO
-        })
+        raise NotImplementedError
+        # self.db.log_admin.insert(
+        #             acao='update',
+        #             valores=ID_CLASSIFICACAO,
+        #             tablename='CLASSIF_PROJETOS',
+        #             colname='ID_CLASSIFICACAO',
+        #             uid=ID_CLASSIF_PROJETO,
+        #             user_id=current.auth.user_id,
+        #             dt_alteracao=datetime.now()
+        #     )
+        # return self.api.performPUTRequest(self.path, {
+        #     'ID_CLASSIF_PROJETO': ID_CLASSIF_PROJETO,
+        #     'ID_CLASSIFICACAO': ID_CLASSIFICACAO
+        # })
 
     def atualizar_classificacoes(self, id_projeto, classificacoes, grupos, comite, camara):
         """
