@@ -35,7 +35,7 @@ class SIEBolsas(SIE):
             'SITUACAO_BOLSA',
             'IND_PERCENTUAL'
         ]
-        return self.api.performGETRequest(self.path, params, fields, cached=self.cacheTime).content[0]
+        return self.api.get(self.path, params, fields, cached=self.cacheTime).content[0]
 
 
 class SIEBolsistas(SIE):
@@ -70,7 +70,7 @@ class SIEBolsistas(SIE):
             'SITUACAO_BOLSISTA': 'A',
             'VL_BOLSA': bolsa['VL_BOLSA'],
         }
-        return self.api.performPOSTRequest(self.path, params)
+        return self.api.post(self.path, params)
 
     def getBolsista(self, ID_BOLSISTA, cached=True):
         params = {
@@ -78,7 +78,7 @@ class SIEBolsistas(SIE):
             'LMIN': 0,
             'LMAX': 1
         }
-        return self.api.performGETRequest(self.path, params, cached=self.cacheTime if cached else 0).content[0]
+        return self.api.get(self.path, params, cached=self.cacheTime if cached else 0).content[0]
 
     def atualizarDadosBancarios(self, ID_BOLSISTA, dados):
         """
@@ -95,7 +95,7 @@ class SIEBolsistas(SIE):
             'CONTA_CORRENTE': dados['CONTA_CORRENTE'],
             'SITUACAO_BOLSISTA': 'A'
         }
-        return self.api.performPUTRequest(self.path, params)
+        return self.api.put(self.path, params)
 
     def inativarBolsista(self, ID_BOLSISTA):
         """
@@ -109,7 +109,7 @@ class SIEBolsistas(SIE):
             'SITUACAO_BOLSISTA': 'I',
             'DT_TERMINO': date.today()
         }
-        return self.api.performPUTRequest(self.path, params)
+        return self.api.put(self.path, params)
     
     def isBolsista(self, ID_CURSO_ALUNO):
         params = {
@@ -119,7 +119,7 @@ class SIEBolsistas(SIE):
             'LMAX': 1
         }
         try:
-            if self.api.performGETRequest(self.path, params):
+            if self.api.get(self.path, params):
                 return True
         except ValueError:
             return False

@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from sie.SIETabEstruturada import SIETabEstruturada
 from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj, SIEOrgaosProjetos
-from unirio.api.apiresult import POSTException, PUTException
+from unirio.api.result import POSTException, PUTException
 from sie.SIEDocumento import SIEDocumentos, SIENumeroTipoDocumento
 from pydal.objects import Row
 from sie.sie_utils import campos_sie_lower
@@ -259,7 +259,7 @@ class SIEProjetosPesquisa(SIEProjetos):
 
 
         try:
-            res = self.api.performGETRequest("V_ORGAOS_PROJ", params, cached=self.cacheTime)
+            res = self.api.get("V_ORGAOS_PROJ", params, cached=self.cacheTime)
             return res.content[0] if res is not None else {}
         except ValueError:
             return {}
@@ -277,7 +277,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             })
 
         try:
-            res = self.api.performGETRequest("V_PROJETOS_PESSOAS", params, cached=self.cacheTime)
+            res = self.api.get("V_PROJETOS_PESSOAS", params, cached=self.cacheTime)
             return res.content[0] if res is not None else {}
         except ValueError:
             return {}

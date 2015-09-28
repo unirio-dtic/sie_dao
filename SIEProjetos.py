@@ -3,7 +3,7 @@ import base64
 import psycopg2
 from datetime import date, datetime
 from deprecate import deprecated
-from unirio.api.apiresult import APIException, POSTException
+from unirio.api.result import APIException, POSTException
 from sie import SIE
 from gluon import current
 from sie.SIEBolsistas import SIEBolsas, SIEBolsistas
@@ -45,7 +45,7 @@ class SIEProjetos(SIE):
         }
 
         try:
-            return self.api.performGETRequest(self.path, params, cached=0).content[0]
+            return self.api.get(self.path, params, cached=0).content[0]
         except (ValueError, AttributeError):
             return None
 
@@ -67,7 +67,7 @@ class SIEProjetos(SIE):
         }
 
         try:
-            return self.api.performGETRequest("V_PROJETOS_DADOS", params, cached=self.cacheTime).content[0]
+            return self.api.get("V_PROJETOS_DADOS", params, cached=self.cacheTime).content[0]
         except (ValueError, AttributeError):
             return None
 
@@ -88,8 +88,8 @@ class SIEProjetos(SIE):
         }
 
         try:
-            c = self.api.performGETRequest("PARTICIPANTES_PROJ", params, cached=self.cacheTime).content[0]
-            return self.api.performGETRequest("PESSOAS", {"ID_PESSOA": c['ID_PESSOA']},
+            c = self.api.get("PARTICIPANTES_PROJ", params, cached=self.cacheTime).content[0]
+            return self.api.get("PESSOAS", {"ID_PESSOA": c['ID_PESSOA']},
                                                 cached=self.cacheTime).content[0]
         except (ValueError, AttributeError):
             return None
@@ -110,7 +110,7 @@ class SIEProjetos(SIE):
         }
 
         try:
-            return self.api.performGETRequest("V_PROJETOS_DADOS", params, cached=self.cacheTime).content[0]['NOME_DISCIPLINA']
+            return self.api.get("V_PROJETOS_DADOS", params, cached=self.cacheTime).content[0]['NOME_DISCIPLINA']
         except (ValueError, AttributeError):
             return None
 
@@ -150,7 +150,7 @@ class SIEProjetos(SIE):
             "LMAX": 99999
         })
 
-        return self.api.performGETRequest('V_PROJETOS_DADOS', params).content
+        return self.api.get('V_PROJETOS_DADOS', params).content
 
     @staticmethod
     def isAvaliado(projeto):
@@ -206,7 +206,7 @@ class SIEProjetos(SIE):
             "AVALIACAO_ITEM": 2
         })
 
-        novoProjeto = self.api.performPOSTRequest(self.path, projeto)
+        novoProjeto = self.api.post(self.path, projeto)
         projeto.update({"ID_PROJETO": novoProjeto.insertId})
 
         return projeto
@@ -226,7 +226,7 @@ class SIEProjetos(SIE):
         :param avaliacao: Um inteiro correspondente a uma avaliação
         """
         try:
-            self.api.performPUTRequest(
+            self.api.put(
                 self.path,
                 {
                     "ID_PROJETO": ID_PROJETO,
@@ -257,7 +257,7 @@ class SIEProjetos(SIE):
         except ValueError:
             print "Documento %d não encontrado" % projeto['ID_DOCUMENTO']
 
-        self.api.performDELETERequest(self.path, {"ID_PROJETO": ID_PROJETO})
+        self.api.delete(self.path, {"ID_PROJETO": ID_PROJETO})
 
     def situacoes(self):
         """
@@ -424,7 +424,7 @@ class SIEArquivosProj(SIE):
             "CONTEUDO_ARQUIVO": self.__conteudoDoArquivo(arquivo)
         }
         # TODO remover comentários quando BLOB estiver sendo salvo no DB2
-        #novoArquivoProj = self.api.performPOSTRequest(self.path, arquivoProj)
+        #novoArquivoProj = self.api.post(self.path, arquivoProj)
         #arquivoProj.update({"ID_ARQUIVO_PROJ": novoArquivoProj.insertId})
         self.salvarDB2BLOB(arquivoProj)
         self.salvarCopiaLocal(arquivo, arquivoProj, funcionario)
@@ -540,7 +540,7 @@ class SIEClassificacoesPrj(SIE):
             'ID_CLASSIFICACAO',
             'DESCRICAO'
         ]
-        return self.api.performGETRequest(self.path, params, fields, cached=self.cacheTime).content
+        return self.api.get(self.path, params, fields, cached=self.cacheTime).content
 
     def get_classificacoes_proj(self, classificacao_item):
         """
@@ -562,7 +562,7 @@ class SIEClassificacoesPrj(SIE):
             'LMAX': 9999
         })
         fields = ["ID_CLASSIFICACAO", "DESCRICAO","CODIGO","ID_CLASSIF_SUP"]
-        return self.api.performGETRequest(self.path, params, fields, cached=self.cacheTime).content
+        return self.api.get(self.path, params, fields, cached=self.cacheTime).content
 
     def get_camaras_pesquisa(self):
         try:
@@ -690,7 +690,7 @@ class SIEParticipantesProjs(SIE):
             "TITULACAO_TAB": 168,
         })
 
-        return self.api.performPOSTRequest(self.path, participante)
+        return self.api.post(self.path, participante)
 
     def descricaoDeFuncaoDeParticipante(self, participante):
         """
@@ -717,7 +717,7 @@ class SIEParticipantesProjs(SIE):
         })
 
         try:
-            return self.api.performGETRequest(self.path, params).content
+            return self.api.get(self.path, params).content
         except (ValueError, AttributeError):
             return None
 
@@ -743,7 +743,7 @@ class SIEParticipantesProjs(SIE):
         })
 
         try:
-            return self.api.performGETRequest(self.path, params).content
+            return self.api.get(self.path, params).content
         except ValueError:
             return []
 
@@ -753,10 +753,10 @@ class SIEParticipantesProjs(SIE):
             'LMIN': 0,
             'LMAX': 1
         }
-        return self.api.performGETRequest(self.path, params, cached=self.cacheTime).content[0]
+        return self.api.get(self.path, params, cached=self.cacheTime).content[0]
 
     def removerParticipante(self, ID_PARTICIPANTE):
-        self.api.performDELETERequest(self.path, {"ID_PARTICIPANTE": ID_PARTICIPANTE})
+        self.api.delete(self.path, {"ID_PARTICIPANTE": ID_PARTICIPANTE})
 
     def removerParticipantesFromProjeto(self, ID_PROJETO):
         params = {
@@ -765,7 +765,7 @@ class SIEParticipantesProjs(SIE):
             "LMAX": 99999
         }
         try:
-            participantes = self.api.performGETRequest(self.path, params, ['ID_PARTICIPANTE'])
+            participantes = self.api.get(self.path, params, ['ID_PARTICIPANTE'])
             for p in participantes.content:
                 self.removerParticipante(p['ID_PARTICIPANTE'])
         except ValueError:
@@ -783,7 +783,7 @@ class SIEParticipantesProjs(SIE):
             'SITUACAO': 'I',
             'DT_FINAL': date.today()
         }
-        self.api.performPUTRequest(self.path, params)
+        self.api.put(self.path, params)
         SIEBolsistas().inativarBolsista(participante['ID_BOLSISTA'])
 
 class SIECursosDisciplinas(SIE):
@@ -802,7 +802,7 @@ class SIECursosDisciplinas(SIE):
             "NOME_CURSO",
             "ID_CURSO"
         ]
-        return self.api.performGETRequest(self.path, params, fields, cached=self.cacheTime).content
+        return self.api.get(self.path, params, fields, cached=self.cacheTime).content
 
     def getCursosGraduacao(self):
         """
@@ -827,7 +827,7 @@ class SIECursosDisciplinas(SIE):
             "NOME_DISCIPLINA",
             "COD_DISCIPLINA"
         ]
-        return self.api.performGETRequest(self.path, params, fields, cached=self.cacheTime).content
+        return self.api.get(self.path, params, fields, cached=self.cacheTime).content
 
     def getIdUnidade(self, ID_CURSO):
         """
@@ -838,7 +838,7 @@ class SIECursosDisciplinas(SIE):
             "ID_CURSO": ID_CURSO
         }
         fields = ["ID_UNIDADE"]
-        return self.api.performGETRequest(self.path, params, fields).first()["ID_UNIDADE"]
+        return self.api.get(self.path, params, fields).first()["ID_UNIDADE"]
 
 
 class SIEClassifProjetos(SIE):
@@ -854,7 +854,7 @@ class SIEClassifProjetos(SIE):
         :param ID_PROJETO: Identificador único de um projeto
         :type ID_CLASSIFICACAO: int
         :param ID_CLASSIFICACAO: Identificador único da classificação de um projeto
-        :rtype: unirio.api.apiresult.APIPOSTResponse
+        :rtype: unirio.api.result.APIPOSTResponse
         """
         classifProj = {
             "ID_PROJETO": ID_PROJETO,
@@ -879,7 +879,7 @@ class SIEClassifProjetos(SIE):
             "LMAX": 9999
         }
         try:
-            classifs = self.api.performGETRequest(self.path, params, ["ID_CLASSIF_PROJETO"])
+            classifs = self.api.get(self.path, params, ["ID_CLASSIF_PROJETO"])
             for classif in classifs.content:
                 self.removerClassifProjetos(classif['ID_CLASSIF_PROJETO'])
         except ValueError:
@@ -893,7 +893,7 @@ class SIEClassifProjetos(SIE):
             "LMAX": 9999
         }
         try:
-            return self.api.performGETRequest(self.path, params)
+            return self.api.get(self.path, params)
         except ValueError:
             return None
 
@@ -916,7 +916,7 @@ class SIEClassifProjetos(SIE):
         #             user_id=current.auth.user_id,
         #             dt_alteracao=datetime.now()
         #     )
-        # return self.api.performPUTRequest(self.path, {
+        # return self.api.put(self.path, {
         #     'ID_CLASSIF_PROJETO': ID_CLASSIF_PROJETO,
         #     'ID_CLASSIFICACAO': ID_CLASSIFICACAO
         # })
@@ -1026,12 +1026,12 @@ class SIEOrgaosProjetos(SIE):
             "SITUACAO": "A"
         }
         try:
-            return self.api.performPOSTRequest(self.path, orgaoProj)
+            return self.api.post(self.path, orgaoProj)
         except Exception:
             current.session.flash = "Não foi possível associar um órgão ao projeto."
 
     def removerOrgaosProjetos(self, ID_ORGAO_PROJETO):
-        self.api.performDELETERequest(self.path, {"ID_ORGAO_PROJETO": ID_ORGAO_PROJETO})
+        self.api.delete(self.path, {"ID_ORGAO_PROJETO": ID_ORGAO_PROJETO})
 
     def removerOrgaosProjetosDeProjeto(self, ID_PROJETO):
         """
@@ -1042,7 +1042,7 @@ class SIEOrgaosProjetos(SIE):
         :type ID_PROJETO: int
         """
         try:
-            orgaos = self.api.performGETRequest(self.path,
+            orgaos = self.api.get(self.path,
                                                 {"ID_PROJETO": ID_PROJETO},
                                                 ['ID_ORGAO_PROJETO'])
             for orgao in orgaos.content:

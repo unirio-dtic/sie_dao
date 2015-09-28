@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from sie import SIE
-from unirio.api.apiresult import POSTException
+from unirio.api.result import POSTException
 from sie.SIETabEstruturada import SIETabEstruturada
 from datetime import date
 
