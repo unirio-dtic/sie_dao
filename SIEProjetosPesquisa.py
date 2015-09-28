@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
+from datetime import date, datetime
+
 from sie.SIETabEstruturada import SIETabEstruturada
 from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj, SIEOrgaosProjetos
-from unirio.api.apiresult import POSTException, PUTException, DELETEException, APIException
+from unirio.api.apiresult import POSTException, PUTException
 from sie.SIEDocumento import SIEDocumentos, SIENumeroTipoDocumento
-from datetime import date, datetime
 from pydal.objects import Row
-from pageutils import campos_sie_lower
+from sie.sie_utils import campos_sie_lower
 
 
 class SIEProjetosPesquisa(SIEProjetos):
@@ -148,8 +149,8 @@ class SIEProjetosPesquisa(SIEProjetos):
                   "AVALIACAO_TAB": self.COD_TABELA_AVALIACAO_PROJETOS_INSTITUICAO,
                   "AVALIACAO_ITEM": self.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE,
                   'ID_CLASSIFICACAO': self.ITEM_CLASSIFICACAO_PROJETO_PESQUISA,
-                  'SITUACAO_ITEM': self.COD_TABELA_SITUACAO, 'SITUACAO_TAB': self.ITEM_SITUACAO_TRAMITE_REGISTRO,
-                  'FUNDACAO_TAB': self.COD_TABELA_FUNDACOES, "DT_REGISTRO": date.today(), }
+                  'SITUACAO_TAB': self.COD_TABELA_SITUACAO, 'SITUACAO_ITEM': self.ITEM_SITUACAO_TRAMITE_REGISTRO,
+                  'FUNDACAO_TAB': self.COD_TABELA_FUNDACOES, "DT_REGISTRO": date.today() }
 
         projeto.update(projeto_padrao)
 
@@ -348,6 +349,54 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
         except POSTException:
             resultado_consulta = None
         return resultado_consulta
+
+    def get_orgaos(self, id_projeto):
+        """
+        Retorna dicionário com todos os orgaos do projeto
+        :return: dict com informações dos orgaos
+        """
+        '''
+        params = {"LMIN": 0,
+                  "LMAX": 999,
+                  "ID_PROJETO": id_projeto,
+                  "SITUACAO": self.COD_SITUACAO_ATIVO
+                  }
+
+        fields = {
+            "ID_ORGAO_PROJETO",
+            "NOME_UNIDADE",
+            "FUNCAO",
+            "DESCR_MAIL",
+            "VINCULO"
+        }
+        try:
+            res = self.api.get("ORGAOS_PROJETOS", params,  cached=0)
+            return res.content if res is not None else []
+        except ValueError:
+            return []
+        '''
+        return [{'ID_ORGAO_PROJ':1, "NOME_UNIDADE":"Unidade",'FUNCAO':"Algo."},
+                {'ID_ORGAO_PROJ':2, "NOME_UNIDADE":"Unidade2","FUNCAO":"Algo2."}]
+
+    def atualizar_orgao(self, orgao):
+        try:
+            retorno = self.api.put(self.path, orgao)
+            if retorno and int(retorno.affectedRows) == 1:
+                return True
+            return False
+        except POSTException:
+            return False
+
+    def deletar_orgao(self, id_orgao_projeto):
+
+        params = {"ID_ORGAO_PROJETO": id_orgao_projeto}
+        try:
+            retorno = self.api.delete(self.path, params)
+            if retorno and int(retorno.affectedRows) == 1:
+                return True
+            return False
+        except Exception:
+            return False
 
 class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
 

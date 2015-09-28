@@ -1,6 +1,6 @@
 # coding=utf-8
 from sie import SIE
-from pageutils import encoded_tab_estruturada
+from sie.sie_utils import encoded_tab_estruturada
 
 __all__ = [
     "SIETabEstruturada"
