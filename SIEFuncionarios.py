@@ -10,7 +10,7 @@ class SIEFuncionarioID(SIE):
         self.cacheTime *= 10
 
     def getFuncionarioIDs(self, cpf):
-        return self.api.performGETRequest(self.path, params={"CPF": cpf}, cached=self.cacheTime).content[0]
+        return self.api.get(self.path, params={"CPF": cpf}, cached=self.cacheTime).content[0]
 
 
 class SIEFuncionarios(SIE):
@@ -32,7 +32,7 @@ class SIEFuncionarios(SIE):
         :raise e:
         """
         try:
-            return self.api.performGETRequest(
+            return self.api.get(
                 self.path,
                 {"ID_FUNCIONARIO": ID_FUNCIONARIO},
                 ["ESCOLARIDADE_ITEM", "ESCOLARIDADE_TAB"]

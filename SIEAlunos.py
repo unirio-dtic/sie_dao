@@ -23,7 +23,7 @@ class SIEAlunos(SIE):
         :return: O coeficiente de rendimento acumulado deste aluno
         :rtype : dict
         """
-        return self.api.performGETRequest("V_COEF_REND_ACAD_ALL", {"ID_ALUNO": ID_ALUNO}, cached=self.cacheTime).content[0]
+        return self.api.get("V_COEF_REND_ACAD_ALL", {"ID_ALUNO": ID_ALUNO}, cached=self.cacheTime).content[0]
 
     def getCRAAlunos(self, alunos):
         try:
@@ -32,7 +32,7 @@ class SIEAlunos(SIE):
                 "LMIN": 0,
                 "LMAX": 99999
             }
-            cras = self.api.performGETRequest("V_COEF_REND_ACAD_ALL", params, cached=self.cacheTime).content
+            cras = self.api.get("V_COEF_REND_ACAD_ALL", params, cached=self.cacheTime).content
             return {a['ID_ALUNO']: a for a in cras}
         except ValueError:
             return {}
@@ -42,7 +42,7 @@ class SIEAlunos(SIE):
         :type cpf: str
         :rtype : dict
         """
-        return self.api.performGETRequest("V_ALUNOS_ATIVOS", {"CPF_SEM_MASCARA": cpf}, cached=self.cacheTime).content[0]
+        return self.api.get("V_ALUNOS_ATIVOS", {"CPF_SEM_MASCARA": cpf}, cached=self.cacheTime).content[0]
 
 
     def get_alunos_ativos(self,query):
@@ -54,7 +54,7 @@ class SIEAlunos(SIE):
         params = {"LMIN": 0, "LMAX": 5, "NOME":query}
         fields = ["ID_ALUNO", "NOME", "MATRICULA"]
         try:
-            res = self.api.performGETRequest("V_ALUNOS_ATIVOS",params, fields,cached=self.cacheTime)
+            res = self.api.get("V_ALUNOS_ATIVOS",params, fields,cached=self.cacheTime)
             return res.content if res is not None else []
         except ValueError:
             return []

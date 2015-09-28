@@ -19,7 +19,7 @@ class SIE(object):
     def __init__(self, api=current.api):
         """
 
-        :type api: unirio.api.apirequest.UNIRIOAPIRequest
+        :type api: unirio.api.request.UNIRIOAPIRequest
         :param api: UNIRIO API
         """
         self.api = api

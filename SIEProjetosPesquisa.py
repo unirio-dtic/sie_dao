@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from sie.SIETabEstruturada import SIETabEstruturada
 from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj, SIEOrgaosProjetos
-from unirio.api.apiresult import POSTException, PUTException
+from unirio.api.result import POSTException, PUTException
 from sie.SIEDocumento import SIEDocumentos, SIENumeroTipoDocumento
 from pydal.objects import Row
 from sie.sie_utils import campos_sie_lower

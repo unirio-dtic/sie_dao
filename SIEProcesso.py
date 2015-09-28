@@ -25,7 +25,7 @@ class SIEProcesso(SIE):
             params[k] = str(params[k]).upper()
         params.update(limits)
 
-        processos = self.api.performGETRequest(self.path, params, cached=86400)
+        processos = self.api.get(self.path, params, cached=86400)
         if processos:
             return processos.content
         else:

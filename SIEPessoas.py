@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from sie import SIE
-from unirio.api.apiresult import POSTException
+from unirio.api.result import POSTException
 
 class SIEPessoas(SIE):
     def __init__(self):
@@ -13,7 +13,7 @@ class SIEPessoas(SIE):
             'LMIN': 0,
             'LMAX': 1
         }
-        return self.api.performGETRequest(self.path, params, cached=self.cacheTime).content[0]
+        return self.api.get(self.path, params, cached=self.cacheTime).content[0]
 
     def cadastrar_pessoa(self, params):
         """

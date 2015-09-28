@@ -73,7 +73,7 @@ class SIEDocumentos(SIE):
             "SEQUENCIA": 1
         }
         try:
-            novoDocumento = self.api.performPOSTRequest(self.path, documento)
+            novoDocumento = self.api.post(self.path, documento)
             try:
                 documento.update({"ID_DOCUMENTO": novoDocumento.insertId})
                 tramitacao = SIETramitacoes(documento)
@@ -133,7 +133,7 @@ class SIEDocumentos(SIE):
             "SEQUENCIA": 1
         }
         try:
-            novoDocumento = self.api.performPOSTRequest(self.path, documento)
+            novoDocumento = self.api.post(self.path, documento)
             try:
                 documento.update({"ID_DOCUMENTO": novoDocumento.insertId})
                 tramitacao = SIETramitacoes(documento)
@@ -160,7 +160,7 @@ class SIEDocumentos(SIE):
             "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
             "SITUACAO_ATUAL": fluxo["SITUACAO_FUTURA"]
         }
-        self.api.performPUTRequest(self.path, novoDocumento)
+        self.api.put(self.path, novoDocumento)
 
     def getDocumento(self, ID_DOCUMENTO):
         """
@@ -175,7 +175,7 @@ class SIEDocumentos(SIE):
             "LMIN": 0,
             "LMAX": 1
         }
-        return self.api.performGETRequest(self.path, params, cached=self.cacheTime).content[0]
+        return self.api.get(self.path, params, cached=self.cacheTime).content[0]
 
     def removerDocumento(self, documento):
         """
@@ -185,7 +185,7 @@ class SIEDocumentos(SIE):
         :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
         """
         SIETramitacoes(documento).removerTramitacoes()
-        response = self.api.performDELETERequest(self.path, {'ID_DOCUMENTO': documento['ID_DOCUMENTO']})
+        response = self.api.delete(self.path, {'ID_DOCUMENTO': documento['ID_DOCUMENTO']})
         if response.affectedRows > 0:
             del documento
 
@@ -210,7 +210,7 @@ class SIENumeroTipoDocumento(SIE):
         }
         fields = ["ID_NUMERO_TIPO_DOC", "NUM_ULTIMO_DOC"]
         try:
-            numero_tipo_doc = self.api.performGETRequest(self.path, params, fields)
+            numero_tipo_doc = self.api.get(self.path, params, fields)
             ID_NUMERO_TIPO_DOC = numero_tipo_doc.content[0]["ID_NUMERO_TIPO_DOC"]
             numero = numero_tipo_doc.content[0]["NUM_ULTIMO_DOC"] + 1
             try:
@@ -228,13 +228,13 @@ class SIENumeroTipoDocumento(SIE):
         O método atualiza todos os IND_DEFAULT para N para ID_TIPO_DOC da instãncia
 
         """
-        numerosDocumentos = self.api.performGETRequest(
+        numerosDocumentos = self.api.get(
             self.path,
             {"ID_TIPO_DOC": self.ID_TIPO_DOC},
             ["ID_NUMERO_TIPO_DOC"]
         )
         for numero in numerosDocumentos.content:
-            self.api.performPUTRequest(
+            self.api.put(
                 self.path,
                 {
                     "ID_NUMERO_TIPO_DOC": numero["ID_NUMERO_TIPO_DOC"],
@@ -243,7 +243,7 @@ class SIENumeroTipoDocumento(SIE):
             )
 
     def atualizarTotalNumeroUltimoDocumento(self, ID_NUMERO_TIPO_DOC, numero):
-        self.api.performPUTRequest(
+        self.api.put(
             self.path,
             {
                 "ID_NUMERO_TIPO_DOC": ID_NUMERO_TIPO_DOC,
@@ -265,7 +265,7 @@ class SIENumeroTipoDocumento(SIE):
             "IND_DEFAULT": "S",
             "NUM_ULTIMO_DOC": NUM_ULTIMO_DOC
         }
-        self.api.performPOSTRequest(self.path, params)
+        self.api.post(self.path, params)
         return NUM_ULTIMO_DOC
 
 
@@ -305,7 +305,7 @@ class SIETramitacoes(SIE):
         }
 
         tramitacao.update(
-            {"ID_TRAMITACAO": self.api.performPOSTRequest(self.path, tramitacao).insertId}
+            {"ID_TRAMITACAO": self.api.post(self.path, tramitacao).insertId}
         )
 
         return tramitacao
@@ -356,7 +356,7 @@ class SIETramitacoes(SIE):
                         "DT_DESPACHO": date.today(),
                         "HR_DESPACHO": strftime("%H:%M:%S")
             }
-            self.api.performPUTRequest(self.path, novaTramitacao)
+            self.api.put(self.path, novaTramitacao)
             try:
                 SIEDocumentos().atualizarSituacaoDocumento(self.documento, fluxo)
             except Exception:
@@ -372,9 +372,9 @@ class SIETramitacoes(SIE):
         :param ID_DOCUMENTO: Identificador único de uma entrada na tabela DOCUMENTOS
         """
         try:
-            tramitacoes = self.api.performGETRequest(self.path, {"ID_DOCUMENTO": self.documento['ID_DOCUMENTO']}, ['ID_TRAMITACAO'])
+            tramitacoes = self.api.get(self.path, {"ID_DOCUMENTO": self.documento['ID_DOCUMENTO']}, ['ID_TRAMITACAO'])
             for tramitacao in tramitacoes.content:
-                self.api.performDELETERequest(self.path, {'ID_TRAMITACAO': tramitacao['ID_TRAMITACAO']})
+                self.api.delete(self.path, {'ID_TRAMITACAO': tramitacao['ID_TRAMITACAO']})
         except ValueError:
             print "Nenhuma tramitação encontrada para o documento %d" % self.documento['ID_DOCUMENTO']
 
@@ -397,7 +397,7 @@ class SIEFluxos(SIE):
             "LMIN": 0,
             "LMAX": 1
         }
-        return self.api.performGETRequest(self.path, params).content[0]
+        return self.api.get(self.path, params).content[0]
 
     def getProximosFluxosFromDocumento(self, documento):
         params = {
@@ -407,4 +407,4 @@ class SIEFluxos(SIE):
             "LMIN": 0,
             "LMAX": 1
         }
-        return self.api.performGETRequest(self.path, params).content[0]
+        return self.api.get(self.path, params).content[0]
