@@ -1,5 +1,6 @@
 # coding=utf-8
 import base64
+import psycopg2
 from datetime import date, datetime
 from deprecate import deprecated
 from unirio.api.apiresult import APIException, POSTException
@@ -172,7 +173,7 @@ class SIEProjetos(SIE):
         if projeto["SITUACAO_ITEM"] in range(1, 10):
             return True
 
-    #@deprecated
+    @deprecated
     def salvarProjeto(self, projeto, funcionario):
         """
         EVENTO_TAB              => Tipos de Eventos
@@ -400,7 +401,7 @@ class SIEArquivosProj(SIE):
             arquivo_proj = None
         return arquivo_proj
 
-    #@deprecate
+    @deprecated
     def salvarArquivo(self, arquivo, projeto, funcionario, TIPO_ARQUIVO_ITEM):
         """
 
