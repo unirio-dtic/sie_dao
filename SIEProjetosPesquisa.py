@@ -37,6 +37,8 @@ class SIEProjetosPesquisa(SIEProjetos):
     ITEM_FUNCOES_PROJ_BOLSISTA = 3
     ITEM_FUNCOES_PROJ_NAO_DEFINIDA = 20
 
+    ITEM_FUNCOES_ORGAOS_RESPONSAVEL = 5
+
     ITEM_ESTADO_REGULAR = 1
 
     SITUACAO_ATIVO = 'A'
@@ -205,7 +207,13 @@ class SIEProjetosPesquisa(SIEProjetos):
         """
         :return: lista contendo listas ("CodOpcao","NomeOpcao")
         """
-        return SIETabEstruturada().get_drop_down_options(self.COD_TABELA_FUNCOES_ORGAOS, (0,))
+        funcoes_proibidas = (
+           0,
+        self.ITEM_FUNCOES_ORGAOS_RESPONSAVEL
+        )
+
+
+        return SIETabEstruturada().get_drop_down_options(self.COD_TABELA_FUNCOES_ORGAOS, funcoes_proibidas)
 
 
     def get_lista_funcoes_projeto_pesquisa(self):
@@ -259,7 +267,7 @@ class SIEProjetosPesquisa(SIEProjetos):
 
 
         try:
-            res = self.api.performGETRequest("V_ORGAOS_PROJ", params, cached=self.cacheTime)
+            res = self.api.get("V_ORGAOS_PROJ", params, cached=self.cacheTime)
             return res.content[0] if res is not None else {}
         except ValueError:
             return {}
@@ -277,7 +285,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             })
 
         try:
-            res = self.api.performGETRequest("V_PROJETOS_PESSOAS", params, cached=self.cacheTime)
+            res = self.api.get("V_PROJETOS_PESSOAS", params, cached=self.cacheTime)
             return res.content[0] if res is not None else {}
         except ValueError:
             return {}
@@ -327,6 +335,55 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
     def __init__(self):
         super(SIEOrgaosProjsPesquisa, self).__init__()
 
+
+    def get_orgao_as_row(self,id_orgao_projeto):
+
+        if id_orgao_projeto:
+            orgao_bd = self.get_orgao(id_orgao_projeto)
+            if orgao_bd:
+                orgao_dict = {
+                    'nome': orgao_bd[u'NOME'].encode('utf-8'),
+                    'descricao_origem': "UNIRIO" if orgao_bd[u"ORIGEM"]=="ID_UNIDADE" else "Externo",
+                    'funcao_orgao': orgao_bd[u"FUNCAO_ORG_ITEM"],
+                    "valor": orgao_bd[u'VL_CONTRIBUICAO'],
+                    'participacao_inicio': datetime.strptime(orgao_bd[u'DT_INICIAL'], '%Y-%m-%d').date(),
+                    'participacao_fim': datetime.strptime(orgao_bd[u'DT_FINAL'], '%Y-%m-%d').date(),
+                    'observacao': orgao_bd[u'OBS_ORG_PROJETO'].encode('utf-8'),
+                    'id':orgao_bd[u"ID_ORGAO_PROJETO"]
+                }
+                orgao_row = Row(**orgao_dict)
+                return orgao_row
+        return None
+
+    def get_orgao(self, id_orgao_projeto):
+        params = {"LMIN": 0,
+                  "LMAX": 1,
+                  "ID_ORGAO_PROJETO": id_orgao_projeto,
+                  }
+        try:
+            res = self.api.get("V_PROJETOS_ORGAOS", params, cached=self.cacheTime)
+            return res.content[0] if res is not None else {}
+        except ValueError:
+            return {}
+
+    def from_form(self,form):
+        """
+        Converte as colunas do form em colunas referentes a tabela no SIE.
+        :param form:
+        :return:
+        """
+
+        sie_row = {
+            "FUNCAO_ORG_ITEM":form.vars.funcao_orgao,
+            "DT_INICIAL": form.vars.participacao_inicio,
+            "DT_FINAL": form.vars.participacao_fim,
+            "VL_CONTRIBUICAO": form.vars.valor,
+            "OBS_ORG_PROJETO": form.vars.observacao
+
+        }
+
+        return sie_row
+
     def cadastra_orgao(self,orgao):
         """
 
@@ -355,28 +412,23 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
         Retorna dicionário com todos os orgaos do projeto
         :return: dict com informações dos orgaos
         """
-        '''
+
         params = {"LMIN": 0,
                   "LMAX": 999,
                   "ID_PROJETO": id_projeto,
-                  "SITUACAO": self.COD_SITUACAO_ATIVO
-                  }
+                 }
 
         fields = {
             "ID_ORGAO_PROJETO",
-            "NOME_UNIDADE",
-            "FUNCAO",
-            "DESCR_MAIL",
-            "VINCULO"
+            "NOME",
+            "FUNCAO_ORG_DESCRICAO",
+            "ORIGEM",
         }
         try:
-            res = self.api.get("ORGAOS_PROJETOS", params,  cached=0)
+            res = self.api.get("V_PROJETOS_ORGAOS", params,  cached=0)
             return res.content if res is not None else []
         except ValueError:
             return []
-        '''
-        return [{'ID_ORGAO_PROJ':1, "NOME_UNIDADE":"Unidade",'FUNCAO':"Algo."},
-                {'ID_ORGAO_PROJ':2, "NOME_UNIDADE":"Unidade2","FUNCAO":"Algo2."}]
 
     def atualizar_orgao(self, orgao):
         try:
