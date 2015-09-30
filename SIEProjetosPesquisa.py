@@ -38,7 +38,7 @@ class SIEProjetosPesquisa(SIEProjetos):
     ITEM_FUNCOES_PROJ_NAO_DEFINIDA = 20
 
     ITEM_FUNCOES_ORGAOS_RESPONSAVEL = 5
-
+    ITEM_FUNCOES_ORGAOS_AGENCIA_FOMENTO = 4
     ITEM_ESTADO_REGULAR = 1
 
     SITUACAO_ATIVO = 'A'
@@ -60,6 +60,26 @@ class SIEProjetosPesquisa(SIEProjetos):
 
         #put PROJETO_ID
 
+    def get_agencia_fomento(self,id_projeto):
+        """
+
+        :param id_projeto: int/string representando a id de um projeto do qual se quer a agência de fomento
+        :return: None se não existe agencia de fomento para o projeto ou a "row" vinda do banco.
+        """
+        params = {
+            'ID_PROJETO': id_projeto,
+            'FUNCAO_ORG_ITEM': self.ITEM_FUNCOES_ORGAOS_AGENCIA_FOMENTO,
+            'LMIN': 0,
+            'LMAX': 1,
+            'ORDERBY':'ID_ORGAO_PROJETO ASC'
+        }
+
+        try:
+            agencia = self.api.get("V_PROJETOS_ORGAOS", params,cached=0).content
+            return agencia[0] if agencia is not None else {}
+        except (AttributeError,ValueError):
+            return {}
+
     def get_projeto_as_row(self, id_projeto):
         """
         Este método retorna um dicionário contendo os dados referentes ao projeto convertidos para o formato compatível
@@ -73,6 +93,8 @@ class SIEProjetosPesquisa(SIEProjetos):
                 termo = SIEArquivosProj().get_termo_outorga(id_projeto)
                 ata = SIEArquivosProj().get_ata_departamento(id_projeto)
                 arquivo_proj = SIEArquivosProj().get_arquivo_projeto(id_projeto)
+                agencia_fomento = self.get_agencia_fomento(id_projeto)
+
                 projeto = {
                     'titulo': projeto_bd[u'TITULO'].encode('utf-8'),
                     'resumo': projeto_bd[u'RESUMO'].encode('utf-8'),
@@ -80,11 +102,14 @@ class SIEProjetosPesquisa(SIEProjetos):
                     'keyword_2': projeto_bd[u'PALAVRA_CHAVE02'].encode('utf-8'),
                     'keyword_3': projeto_bd[u'PALAVRA_CHAVE03'].encode('utf-8') if projeto_bd[u'PALAVRA_CHAVE03'] is not None else "",
                     'keyword_4': projeto_bd[u'PALAVRA_CHAVE04'].encode('utf-8') if projeto_bd[u'PALAVRA_CHAVE04'] is not None else "",
-                    "financeiro_apoio_financeiro": False if projeto_bd[u'FUNDACAO_ITEM'] == SIEProjetosPesquisa().ITEM_FUNDACOES_NAO_SE_APLICA else True,
+                    "financeiro_apoio_financeiro": bool(agencia_fomento),  # TODO Lógica cheia de gambiarra de lidar com fundações.
                     "carga_horaria": projeto_bd[u'CARGA_HORARIA'],
                     "financeiro_termo_outorga": termo, #TODO
-                    "financeiro_valor_previsto": projeto_bd[u'VL_PREVISTO'],
-                    "financeiro_agencia_fomento": projeto_bd[u'FUNDACAO_ITEM'],
+                    "financeiro_valor_previsto": agencia_fomento["VL_CONTRIBUICAO"] if agencia_fomento else "",
+                    "financeiro_agencia_fomento": agencia_fomento["NOME"].encode('utf-8').trim() if agencia_fomento else "",
+                    "financeiro_id_orgao_projeto": agencia_fomento["ID_ORGAO_PROJETO"] if agencia_fomento else "",
+                    "financeiro_id_origem":agencia_fomento["ID_ORIGEM"] if agencia_fomento else "",
+                    "financeiro_origem":agencia_fomento["ORIGEM"] if agencia_fomento else "",
                     "ata_departamento": ata, #TODO
                     "arquivo_projeto": arquivo_proj, #TODO
                     'vigencia_inicio': datetime.strptime(projeto_bd[u'DT_INICIAL'], '%Y-%m-%d').date(),
@@ -109,8 +134,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             # 'CARGA_HORARIA'
             'DT_CONCLUSAO': form.vars['vigencia_final'],
             'DT_INICIAL': form.vars['vigencia_inicio'],
-            'FUNDACAO_ITEM': form.vars[
-                'financeiro_agencia_fomento'] if tem_apoio_financeiro else SIEProjetosPesquisa().ITEM_FUNDACOES_NAO_SE_APLICA,
+            'FUNDACAO_ITEM': self.ITEM_FUNDACOES_NAO_SE_APLICA, #  TODO Lógica gambiarra de lidar com fundações: Item é sempre jogado como não se aplica. Existe uma linha na tabela de órgãos que substitui esse campo
             'PALAVRA_CHAVE01': form.vars['keyword_1'],
             'PALAVRA_CHAVE02': form.vars['keyword_2'],
             'PALAVRA_CHAVE03': form.vars['keyword_3'],
@@ -429,6 +453,7 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
             return res.content if res is not None else []
         except ValueError:
             return []
+
 
     def atualizar_orgao(self, orgao):
         try:
