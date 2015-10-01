@@ -106,7 +106,7 @@ class SIEProjetosPesquisa(SIEProjetos):
                     "carga_horaria": projeto_bd[u'CARGA_HORARIA'],
                     "financeiro_termo_outorga": termo, #TODO
                     "financeiro_valor_previsto": agencia_fomento["VL_CONTRIBUICAO"] if agencia_fomento else "",
-                    "financeiro_agencia_fomento": agencia_fomento["NOME"].encode('utf-8').trim() if agencia_fomento else "",
+                    "financeiro_agencia_fomento": agencia_fomento["NOME"].encode('utf-8').strip() if agencia_fomento else "",
                     "financeiro_id_orgao_projeto": agencia_fomento["ID_ORGAO_PROJETO"] if agencia_fomento else "",
                     "financeiro_id_origem":agencia_fomento["ID_ORIGEM"] if agencia_fomento else "",
                     "financeiro_origem":agencia_fomento["ORIGEM"] if agencia_fomento else "",
