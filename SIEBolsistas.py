@@ -123,3 +123,27 @@ class SIEBolsistas(SIE):
                 return True
         except ValueError:
             return False
+
+
+    def get_bolsistas_por_coordenador(self,cpf):
+        """
+        Retorna dicionário com todos os orgaos do projeto
+        :return: dict com informações dos orgaos
+        """
+
+        params = {"LMIN": 0,
+                  "LMAX": 999,
+                  "CPF_COORDENADOR": cpf,
+                  }
+
+        fields = {
+            "NOME_BOLSISTA",
+            # TODO PRECISO DO NOME PROJETO
+            "ID_PARTICIPANTE",
+            "ID_PROJETO",
+        }
+        try:
+            res = self.api.get("V_BOLSISTAS_PROJETOS", params,  cached=0)
+            return res.content if res is not None else []
+        except ValueError:
+            return []
