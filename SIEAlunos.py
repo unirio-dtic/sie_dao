@@ -51,10 +51,10 @@ class SIEAlunos(SIE):
         :param query: string usada em uma query de like no bd
         :return: lista de alunos que dão match na string passada em query
         """
-        params = {"LMIN": 0, "LMAX": 5, "NOME":query}
-        fields = ["ID_ALUNO", "NOME", "MATRICULA"]
+        params = {"LMIN": 0, "LMAX": 999, "NOME":query}
+        #fields = ["ID_ALUNO", "NOME", "MATRICULA"]
         try:
-            res = self.api.get("V_ALUNOS_ATIVOS",params, fields,cached=self.cacheTime)
+            res = self.api.get("V_ALUNOS_ATIVOS",params,cached=0)
             return res.content if res is not None else []
         except ValueError:
             return []

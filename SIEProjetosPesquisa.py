@@ -260,7 +260,7 @@ class SIEProjetosPesquisa(SIEProjetos):
                   "NOME": query,
                   }
 
-        fields = ['NOME','ID_PESSOA','MATRICULA','DESCRICAO_VINCULO']
+        #fields = ['NOME','ID_PESSOA','MATRICULA','DESCRICAO_VINCULO']
         try:
             res = self.api.get("V_PROJETOS_PESSOAS", params, cached=0)
             return res.content if res is not None else []
@@ -273,7 +273,7 @@ class SIEProjetosPesquisa(SIEProjetos):
                   "NOME_UNIDADE": query,
                   }
 
-        fields = ['NOME_UNIDADE','ID_ORIGEM','ORIGEM']
+        #fields = ['NOME_UNIDADE','ID_ORIGEM','ORIGEM']
         try:
             res = self.api.get("V_ORGAOS_PROJ", params, cached=0)
             return res.content if res is not None else []
@@ -350,6 +350,15 @@ class SIEProjetosPesquisa(SIEProjetos):
             return res.content[0] if res is not None else None
         except ValueError:
             return None
+
+    def get_relatorios_docente(self,cpf):
+        """
+        Retorna os relatorios docentes de um projeto
+        :param cpf: cpf do coordenador
+        :return:
+        """
+        pass
+
 
 
 class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
@@ -474,6 +483,9 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
             return False
         except Exception:
             return False
+
+
+
 
 class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
 
