@@ -262,7 +262,7 @@ class SIEProjetosPesquisa(SIEProjetos):
 
         #fields = ['NOME','ID_PESSOA','MATRICULA','DESCRICAO_VINCULO']
         try:
-            res = self.api.get("MT_PROJETOS_PESSOAS", params, cached=0)
+            res = self.api.get("V_PROJETOS_PESSOAS", params, cached=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -309,7 +309,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             })
 
         try:
-            res = self.api.get("MT_PROJETOS_PESSOAS", params, cached=0)
+            res = self.api.get("V_PROJETOS_PESSOAS", params, cached=0)
             return res.content[0] if res is not None else {}
         except ValueError:
             return {}
