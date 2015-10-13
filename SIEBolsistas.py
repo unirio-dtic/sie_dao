@@ -39,6 +39,8 @@ class SIEBolsas(SIE):
 
 
 class SIEBolsistas(SIE):
+    COD_SITUACAO_ATIVO = 'A'
+
     def __init__(self):
         super(SIEBolsistas, self).__init__()
         self.path = "BOLSISTAS"
@@ -93,7 +95,7 @@ class SIEBolsistas(SIE):
             'ID_BOLSISTA': ID_BOLSISTA,
             'ID_AGENCIA': dados['ID_AGENCIA'],
             'CONTA_CORRENTE': dados['CONTA_CORRENTE'],
-            'SITUACAO_BOLSISTA': 'A'
+            'SITUACAO_BOLSISTA': self.COD_SITUACAO_ATIVO
         }
         return self.api.put(self.path, params)
 
@@ -114,7 +116,7 @@ class SIEBolsistas(SIE):
     def isBolsista(self, ID_CURSO_ALUNO):
         params = {
             'ID_CURSO_ALUNO': ID_CURSO_ALUNO,
-            'SITUACAO_BOLSISTA': 'A',
+            'SITUACAO_BOLSISTA': self.COD_SITUACAO_ATIVO,
             'LMIN': 0,
             'LMAX': 1
         }
@@ -134,11 +136,13 @@ class SIEBolsistas(SIE):
         params = {"LMIN": 0,
                   "LMAX": 999,
                   "CPF_COORDENADOR": cpf,
+                  "SITUACAO_BOLSISTA": self.COD_SITUACAO_ATIVO
                   }
 
         fields = {
             "NOME_BOLSISTA",
             # TODO PRECISO DO NOME PROJETO
+            # TODO PRECISO DO EMAIL
             "ID_PARTICIPANTE",
             "ID_PROJETO",
         }
