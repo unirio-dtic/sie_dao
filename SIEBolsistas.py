@@ -139,13 +139,6 @@ class SIEBolsistas(SIE):
                   "SITUACAO_BOLSISTA": self.COD_SITUACAO_ATIVO
                   }
 
-        fields = {
-            "NOME_BOLSISTA",
-            # TODO PRECISO DO NOME PROJETO
-            # TODO PRECISO DO EMAIL
-            "ID_PARTICIPANTE",
-            "ID_PROJETO",
-        }
         try:
             res = self.api.get("V_BOLSISTAS_PROJETOS", params,  cached=0)
             return res.content if res is not None else []
