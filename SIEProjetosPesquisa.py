@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from sie.SIETabEstruturada import SIETabEstruturada
 from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj, SIEOrgaosProjetos
-from unirio.api.result import POSTException, PUTException
+from unirio.api.result import APIException
 from sie.SIEDocumento import SIEDocumentos, SIENumeroTipoDocumento
 from pydal.objects import Row
 from sie.sie_utils import campos_sie_lower
@@ -75,7 +75,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         }
 
         try:
-            agencia = self.api.get("V_PROJETOS_ORGAOS", params,cached=0).content
+            agencia = self.api.get("V_PROJETOS_ORGAOS", params, cache_time=0).content
             return agencia[0] if agencia is not None else {}
         except (AttributeError,ValueError):
             return {}
@@ -183,7 +183,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         try:
             novo_projeto = self.api.post(self.path, projeto)
             projeto.update({'id_projeto': novo_projeto.insertId})
-        except POSTException:
+        except APIException:
             projeto = None
         return projeto
 
@@ -193,7 +193,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             if retorno and int(retorno.affectedRows) == 1:
                 return True
             return False
-        except PUTException:
+        except APIException:
             return False
 
     def criar_documento_projeto(self, funcionario):
@@ -262,7 +262,7 @@ class SIEProjetosPesquisa(SIEProjetos):
 
         #fields = ['NOME','ID_PESSOA','MATRICULA','DESCRICAO_VINCULO']
         try:
-            res = self.api.get("V_PROJETOS_PESSOAS", params, cached=0)
+            res = self.api.get("V_PROJETOS_PESSOAS", params, cache_time=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -275,7 +275,7 @@ class SIEProjetosPesquisa(SIEProjetos):
 
         #fields = ['NOME_UNIDADE','ID_ORIGEM','ORIGEM']
         try:
-            res = self.api.get("V_ORGAOS_PROJ", params, cached=0)
+            res = self.api.get("V_ORGAOS_PROJ", params, cache_time=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -291,7 +291,7 @@ class SIEProjetosPesquisa(SIEProjetos):
 
 
         try:
-            res = self.api.get("V_ORGAOS_PROJ", params, cached=self.cacheTime)
+            res = self.api.get("V_ORGAOS_PROJ", params, cache_time=self.cacheTime)
             return res.content[0] if res is not None else {}
         except ValueError:
             return {}
@@ -309,7 +309,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             })
 
         try:
-            res = self.api.get("V_PROJETOS_PESSOAS", params, cached=0)
+            res = self.api.get("V_PROJETOS_PESSOAS", params, cache_time=0)
             return res.content[0] if res is not None else {}
         except ValueError:
             return {}
@@ -330,7 +330,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             })
 
         try:
-            res = self.api.get("V_PROJETOS_PESQUISA", params, cached=0)
+            res = self.api.get("V_PROJETOS_PESQUISA", params, cache_time=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -346,7 +346,7 @@ class SIEProjetosPesquisa(SIEProjetos):
                   "FUNCAO_ITEM": SIEProjetosPesquisa.ITEM_FUNCOES_PROJ_COORDENADOR
                   }
         try:
-            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cached=0)
+            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cache_time=0)
             return res.content[0] if res is not None else None
         except ValueError:
             return None
@@ -394,7 +394,7 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
                   "ID_ORGAO_PROJETO": id_orgao_projeto,
                   }
         try:
-            res = self.api.get("V_PROJETOS_ORGAOS", params, cached=0)
+            res = self.api.get("V_PROJETOS_ORGAOS", params, cache_time=0)
             return res.content[0] if res is not None else {}
         except ValueError:
             return {}
@@ -436,7 +436,7 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
                 'SITUACAO': self.COD_SITUACAO_ATIVO
             })
             resultado_consulta = self.api.post(self.path, orgao)
-        except POSTException:
+        except APIException:
             resultado_consulta = None
         return resultado_consulta
 
@@ -458,7 +458,7 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
             "ORIGEM",
         }
         try:
-            res = self.api.get("V_PROJETOS_ORGAOS", params,  cached=0)
+            res = self.api.get("V_PROJETOS_ORGAOS", params,  cache_time=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -470,7 +470,7 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
             if retorno and int(retorno.affectedRows) == 1:
                 return True
             return False
-        except POSTException:
+        except APIException:
             return False
 
     def deletar_orgao(self, id_orgao_projeto):
@@ -512,7 +512,7 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
                 'SITUACAO': self.COD_SITUACAO_ATIVO
             })
             resultado_consulta = self.api.post(self.path, participante)
-        except POSTException:
+        except APIException:
             resultado_consulta = None
         return resultado_consulta
 
@@ -535,7 +535,7 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
             "VINCULO"
         }
         try:
-            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cached=0)
+            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cache_time=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -577,7 +577,7 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
                   "ID_PARTICIPANTE": id_participante,
                   }
         try:
-            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cached=0)
+            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cache_time=0)
             return res.content[0] if res is not None else None
         except ValueError:
             return None
@@ -608,7 +608,7 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
             if retorno and int(retorno.affectedRows) == 1:
                 return True
             return False
-        except POSTException:
+        except APIException:
             return False
 
     def deletar_participante(self, id_participante):

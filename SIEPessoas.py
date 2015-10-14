@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from sie import SIE
-from unirio.api.result import POSTException
+from unirio.api.result import APIException
 
 class SIEPessoas(SIE):
     def __init__(self):
@@ -13,7 +13,7 @@ class SIEPessoas(SIE):
             'LMIN': 0,
             'LMAX': 1
         }
-        return self.api.get(self.path, params, cached=self.cacheTime).content[0]
+        return self.api.get(self.path, params, cache_time=self.cacheTime).content[0]
 
     def cadastrar_pessoa(self, params):
         """
@@ -23,7 +23,7 @@ class SIEPessoas(SIE):
         try:
 
             pessoa = self.api.post(self.path, params)
-        except POSTException:
+        except APIException:
             pessoa = None
         return pessoa
 
@@ -45,7 +45,7 @@ class SIEDocPessoas(SIE):
         }
 
         try:
-            res = self.api.get(self.path,params,cached=0)
+            res = self.api.get(self.path,params, cache_time=0)
             if res is not None and res.content:
                 return True
             else:
@@ -67,4 +67,4 @@ class SIEUsuarios(SIE):
             'LMAX': 1,
             'LOGIN':cpf
         }
-        return self.api.get(self.path, params, cached=self.cacheTime).content[0]
+        return self.api.get(self.path, params, cache_time=self.cacheTime).content[0]

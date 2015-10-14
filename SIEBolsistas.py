@@ -35,7 +35,7 @@ class SIEBolsas(SIE):
             'SITUACAO_BOLSA',
             'IND_PERCENTUAL'
         ]
-        return self.api.get(self.path, params, fields, cached=self.cacheTime).content[0]
+        return self.api.get(self.path, params, fields, cache_time=self.cacheTime).content[0]
 
 
 class SIEBolsistas(SIE):
@@ -80,7 +80,7 @@ class SIEBolsistas(SIE):
             'LMIN': 0,
             'LMAX': 1
         }
-        return self.api.get(self.path, params, cached=self.cacheTime if cached else 0).content[0]
+        return self.api.get(self.path, params, cache_time=self.cacheTime if cached else 0).content[0]
 
     def atualizarDadosBancarios(self, ID_BOLSISTA, dados):
         """
@@ -140,7 +140,7 @@ class SIEBolsistas(SIE):
                   }
 
         try:
-            res = self.api.get("V_BOLSISTAS_PROJETOS", params,  cached=0)
+            res = self.api.get("V_BOLSISTAS_PROJETOS", params,  cache_time=0)
             return res.content if res is not None else []
         except ValueError:
             return []

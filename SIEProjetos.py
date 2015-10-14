@@ -3,7 +3,7 @@ import base64
 import psycopg2
 from datetime import date, datetime
 from deprecate import deprecated
-from unirio.api.result import APIException, POSTException
+from unirio.api.result import APIException
 from sie import SIE
 from gluon import current
 from sie.SIEBolsistas import SIEBolsas, SIEBolsistas
@@ -45,7 +45,7 @@ class SIEProjetos(SIE):
         }
 
         try:
-            return self.api.get(self.path, params, cached=0).content[0]
+            return self.api.get(self.path, params, cache_time=0).content[0]
         except (ValueError, AttributeError):
             return None
 
@@ -67,7 +67,7 @@ class SIEProjetos(SIE):
         }
 
         try:
-            return self.api.get("V_PROJETOS_DADOS", params, cached=self.cacheTime).content[0]
+            return self.api.get("V_PROJETOS_DADOS", params, cache_time=self.cacheTime).content[0]
         except (ValueError, AttributeError):
             return None
 
@@ -88,9 +88,9 @@ class SIEProjetos(SIE):
         }
 
         try:
-            c = self.api.get("PARTICIPANTES_PROJ", params, cached=self.cacheTime).content[0]
+            c = self.api.get("PARTICIPANTES_PROJ", params, cache_time=self.cacheTime).content[0]
             return self.api.get("PESSOAS", {"ID_PESSOA": c['ID_PESSOA']},
-                                                cached=self.cacheTime).content[0]
+                                                cache_time=self.cacheTime).content[0]
         except (ValueError, AttributeError):
             return None
 
@@ -110,7 +110,7 @@ class SIEProjetos(SIE):
         }
 
         try:
-            return self.api.get("V_PROJETOS_DADOS", params, cached=self.cacheTime).content[0]['NOME_DISCIPLINA']
+            return self.api.get("V_PROJETOS_DADOS", params, cache_time=self.cacheTime).content[0]['NOME_DISCIPLINA']
         except (ValueError, AttributeError):
             return None
 
@@ -397,7 +397,7 @@ class SIEArquivosProj(SIE):
         try:
             novo_arquivo_proj = self.api.post(self.path, arquivo_proj)
             arquivo_proj.update({"ID_ARQUIVO_PROJ": novo_arquivo_proj.insertId}) #????
-        except POSTException:
+        except APIException:
             arquivo_proj = None
         return arquivo_proj
 
@@ -540,7 +540,7 @@ class SIEClassificacoesPrj(SIE):
             'ID_CLASSIFICACAO',
             'DESCRICAO'
         ]
-        return self.api.get(self.path, params, fields, cached=self.cacheTime).content
+        return self.api.get(self.path, params, fields, cache_time=self.cacheTime).content
 
     def get_classificacoes_proj(self, classificacao_item):
         """
@@ -562,7 +562,7 @@ class SIEClassificacoesPrj(SIE):
             'LMAX': 9999
         })
         fields = ["ID_CLASSIFICACAO", "DESCRICAO","CODIGO","ID_CLASSIF_SUP"]
-        return self.api.get(self.path, params, fields, cached=self.cacheTime).content
+        return self.api.get(self.path, params, fields, cache_time=self.cacheTime).content
 
     def get_camaras_pesquisa(self):
         try:
@@ -753,7 +753,7 @@ class SIEParticipantesProjs(SIE):
             'LMIN': 0,
             'LMAX': 1
         }
-        return self.api.get(self.path, params, cached=self.cacheTime).content[0]
+        return self.api.get(self.path, params, cache_time=self.cacheTime).content[0]
 
     def removerParticipante(self, ID_PARTICIPANTE):
         self.api.delete(self.path, {"ID_PARTICIPANTE": ID_PARTICIPANTE})
@@ -802,7 +802,7 @@ class SIECursosDisciplinas(SIE):
             "NOME_CURSO",
             "ID_CURSO"
         ]
-        return self.api.get(self.path, params, fields, cached=self.cacheTime).content
+        return self.api.get(self.path, params, fields, cache_time=self.cacheTime).content
 
     def getCursosGraduacao(self):
         """
@@ -827,7 +827,7 @@ class SIECursosDisciplinas(SIE):
             "NOME_DISCIPLINA",
             "COD_DISCIPLINA"
         ]
-        return self.api.get(self.path, params, fields, cached=self.cacheTime).content
+        return self.api.get(self.path, params, fields, cache_time=self.cacheTime).content
 
     def getIdUnidade(self, ID_CURSO):
         """
@@ -953,7 +953,7 @@ class SIEClassifProjetos(SIE):
             "LMAX": 9999,
         })
         try:
-            res = self.api.get("V_PROJETOS_CLASSIFICACOES", params, cached=0)
+            res = self.api.get("V_PROJETOS_CLASSIFICACOES", params, cache_time=0)
             return res.content if res is not None else []
         except (AttributeError, ValueError):
             return []

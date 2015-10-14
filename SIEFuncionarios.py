@@ -10,7 +10,7 @@ class SIEFuncionarioID(SIE):
         self.cacheTime *= 10
 
     def getFuncionarioIDs(self, cpf):
-        return self.api.get(self.path, params={"CPF": cpf}, cached=self.cacheTime).content[0]
+        return self.api.get(self.path, params={"CPF": cpf}, cache_time=self.cacheTime).content[0]
 
 
 class SIEFuncionarios(SIE):
@@ -42,7 +42,7 @@ class SIEFuncionarios(SIE):
             raise e
 
     def get_funcionario(self, cpf):
-        return self.api.get("V_FUNCIONARIOS", params={"CPF": cpf}, cached=self.cacheTime).content[0]
+        return self.api.get("V_FUNCIONARIOS", params={"CPF": cpf}, cache_time=self.cacheTime).content[0]
 
 class SIEDocentes(SIE):
 
@@ -73,7 +73,7 @@ class SIEDocentes(SIE):
         ]
 
         try:
-            res = self.api.get(self.path, params, cached=self.cacheTime)
+            res = self.api.get(self.path, params, cache_time=self.cacheTime)
             return res.content if res is not None else []
         except ValueError:
             return []

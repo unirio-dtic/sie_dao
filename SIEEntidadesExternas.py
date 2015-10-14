@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from sie import SIE
-from unirio.api.result import POSTException
+from unirio.api.result import APIException
 from sie.SIETabEstruturada import SIETabEstruturada
 from datetime import date
 
@@ -27,7 +27,7 @@ class SIEEntidadesExternas(SIE):
             })
             entidade = self.api.post(self.path, params)
 
-        except POSTException:
+        except APIException:
             entidade = None
         return entidade
 

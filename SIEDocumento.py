@@ -175,7 +175,7 @@ class SIEDocumentos(SIE):
             "LMIN": 0,
             "LMAX": 1
         }
-        return self.api.get(self.path, params, cached=self.cacheTime).content[0]
+        return self.api.get(self.path, params, cache_time=self.cacheTime).content[0]
 
     def removerDocumento(self, documento):
         """
