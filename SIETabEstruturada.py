@@ -8,11 +8,11 @@ __all__ = [
 
 
 class SIETabEstruturada(SIE):
+    path = "TAB_ESTRUTURADA"
     COD_TABELA_ESTADOS = 206
 
     def __init__(self):
         super(SIETabEstruturada, self).__init__()
-        self.path = "TAB_ESTRUTURADA"
         self.cacheTime *= 2
 
     def descricaoDeItem(self, ITEM_TABELA, COD_TABELA):
