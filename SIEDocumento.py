@@ -2,7 +2,7 @@
 from datetime import date, timedelta
 from time import strftime
 from gluon import current
-from deprecate import deprecated
+from deprecation import deprecated
 
 from sie import SIE
 

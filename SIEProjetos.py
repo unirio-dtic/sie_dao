@@ -1,8 +1,7 @@
 # coding=utf-8
 import base64
-import psycopg2
 from datetime import date, datetime
-from deprecate import deprecated
+from deprecation import deprecated
 from unirio.api.result import APIException
 from sie import SIE
 from gluon import current
@@ -496,6 +495,7 @@ class SIEArquivosProj(SIE):
             if e.errno == 63:
                 current.session.flash += "Impossivel salvar o arquivo %s. Nome muito grande" % arquivo.filename
         except psycopg2.IntegrityError:
+            # todo dependência estranha pra caralho....
             current.db.rollback()
             current.session.flash += "Não é possível enviar mais de um arquivo por etapa"
         except Exception as e:

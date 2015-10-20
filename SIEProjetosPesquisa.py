@@ -388,9 +388,8 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
                   "ID_ORGAO_PROJETO": id_orgao_projeto,
                   }
         try:
-            res = self.api.get("V_PROJETOS_ORGAOS", params, cache_time=0)
-            return res.content[0] if res is not None else {}
-        except ValueError:
+            return self.api.get("V_PROJETOS_ORGAOS", params).first()
+        except NoContentException:
             return {}
 
     def from_form(self, form):
@@ -449,9 +448,13 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
             return []
 
     def atualizar_orgao(self, orgao):
+        """
+        :rtype : APIPUTResponse
+        :raises: APIException
+        """
         try:
             retorno = self.api.put(self.path, orgao)
-            if retorno and int(retorno.affectedRows) == 1:
+            if retorno.affectedRows == 1:
                 return True
             return False
         except APIException:
