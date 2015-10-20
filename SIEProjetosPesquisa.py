@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
-
-from datetime import date, datetime
-
+from unirio.api.exceptions import APIException
 from sie.SIETabEstruturada import SIETabEstruturada
 from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj, SIEOrgaosProjetos
-from unirio.api.result import POSTException, PUTException
 from sie.SIEDocumento import SIEDocumentos, SIENumeroTipoDocumento
-from pydal.objects import Row
 from sie.sie_utils import campos_sie_lower
+from pydal.objects import Row
+from datetime import date, datetime
 
 
 class SIEProjetosPesquisa(SIEProjetos):
@@ -15,19 +13,19 @@ class SIEProjetosPesquisa(SIEProjetos):
     Classe que representa os projetos de pesquisa
     """
 
-    COD_TABELA_FUNDACOES = 6025          #Fundações
-    COD_TABELA_FUNCOES_PROJ = 6003 #Funções Projeto
+    COD_TABELA_FUNDACOES = 6025                         # Fundações
+    COD_TABELA_FUNCOES_PROJ = 6003                      # Funções Projeto
     COD_TABELA_FUNCOES_ORGAOS = 6006
-    COD_TABELA_TITULACAO = 168          #Titulação
-    COD_TABELA_TIPO_EVENTO = 6028      #=> Tipos de Eventos
-    COD_TABELA_TIPO_PUBLICO_ALVO = 6002 #=> Público alvo
-    COD_TABELA_AVALIACAO_PROJETOS_INSTITUICAO = 6010    #=> Avaliação dos projetos da Instituição
+    COD_TABELA_TITULACAO = 168                          # Titulação
+    COD_TABELA_TIPO_EVENTO = 6028                       # => Tipos de Eventos
+    COD_TABELA_TIPO_PUBLICO_ALVO = 6002                 # => Público alvo
+    COD_TABELA_AVALIACAO_PROJETOS_INSTITUICAO = 6010    # => Avaliação dos projetos da Instituição
     COD_TABELA_SITUACAO = 6011
 
-    ITEM_FUNDACOES_NAO_SE_APLICA = 1         #=> NSIEão se aplica
-    ITEM_TIPO_EVENTO_NAO_SE_APLICA = 1         #=> Não se aplica
-    ITEM_TIPO_PUBLICO_3_GRAU = 8   #=> 3o grau
-    ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE = 1      #=> Não-avaliado
+    ITEM_FUNDACOES_NAO_SE_APLICA = 1                    # => Não se aplica
+    ITEM_TIPO_EVENTO_NAO_SE_APLICA = 1                  # => Não se aplica
+    ITEM_TIPO_PUBLICO_3_GRAU = 8                        # => 3o grau
+    ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE = 1    # => Não-avaliado
     ITEM_CLASSIFICACAO_PROJETO_PESQUISA = 39718
     ITEM_SITUACAO_TRAMITE_REGISTRO = 8
     # TODO Ter estes parâmetros HARD-CODED é uma limitação.
@@ -44,7 +42,6 @@ class SIEProjetosPesquisa(SIEProjetos):
     SITUACAO_ATIVO = 'A'
     ACESSO_PARTICIPANTES_APENAS_COORDENADOR = 'N'
     NAO_PAGA_BOLSA = 'N'
-
 
     def __init__(self):
         super(SIEProjetosPesquisa, self).__init__()
@@ -75,7 +72,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         }
 
         try:
-            agencia = self.api.get("V_PROJETOS_ORGAOS", params,cached=0).content
+            agencia = self.api.get("V_PROJETOS_ORGAOS", params, cache_time=0).content
             return agencia[0] if agencia is not None else {}
         except (AttributeError,ValueError):
             return {}
@@ -183,7 +180,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         try:
             novo_projeto = self.api.post(self.path, projeto)
             projeto.update({'id_projeto': novo_projeto.insertId})
-        except POSTException:
+        except APIException:
             projeto = None
         return projeto
 
@@ -193,7 +190,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             if retorno and int(retorno.affectedRows) == 1:
                 return True
             return False
-        except PUTException:
+        except APIException:
             return False
 
     def criar_documento_projeto(self, funcionario):
@@ -260,9 +257,9 @@ class SIEProjetosPesquisa(SIEProjetos):
                   "NOME": query,
                   }
 
-        fields = ['NOME','ID_PESSOA','MATRICULA','DESCRICAO_VINCULO']
+        #fields = ['NOME','ID_PESSOA','MATRICULA','DESCRICAO_VINCULO']
         try:
-            res = self.api.get("V_PROJETOS_PESSOAS", params, cached=0)
+            res = self.api.get("V_PROJETOS_PESSOAS", params, cache_time=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -273,9 +270,9 @@ class SIEProjetosPesquisa(SIEProjetos):
                   "NOME_UNIDADE": query,
                   }
 
-        fields = ['NOME_UNIDADE','ID_ORIGEM','ORIGEM']
+        #fields = ['NOME_UNIDADE','ID_ORIGEM','ORIGEM']
         try:
-            res = self.api.get("V_ORGAOS_PROJ", params, cached=0)
+            res = self.api.get("V_ORGAOS_PROJ", params, cache_time=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -291,7 +288,7 @@ class SIEProjetosPesquisa(SIEProjetos):
 
 
         try:
-            res = self.api.get("V_ORGAOS_PROJ", params, cached=self.cacheTime)
+            res = self.api.get("V_ORGAOS_PROJ", params, cache_time=self.cacheTime)
             return res.content[0] if res is not None else {}
         except ValueError:
             return {}
@@ -309,7 +306,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             })
 
         try:
-            res = self.api.get("V_PROJETOS_PESSOAS", params, cached=self.cacheTime)
+            res = self.api.get("V_PROJETOS_PESSOAS", params, cache_time=0)
             return res.content[0] if res is not None else {}
         except ValueError:
             return {}
@@ -330,7 +327,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             })
 
         try:
-            res = self.api.get("V_PROJETOS_PESQUISA", params, cached=0)
+            res = self.api.get("V_PROJETOS_PESQUISA", params, cache_time=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -346,10 +343,19 @@ class SIEProjetosPesquisa(SIEProjetos):
                   "FUNCAO_ITEM": SIEProjetosPesquisa.ITEM_FUNCOES_PROJ_COORDENADOR
                   }
         try:
-            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cached=0)
+            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cache_time=0)
             return res.content[0] if res is not None else None
         except ValueError:
             return None
+
+    def get_relatorios_docente(self,cpf):
+        """
+        Retorna os relatorios docentes de um projeto
+        :param cpf: cpf do coordenador
+        :return:
+        """
+        pass
+
 
 
 class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
@@ -385,7 +391,7 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
                   "ID_ORGAO_PROJETO": id_orgao_projeto,
                   }
         try:
-            res = self.api.get("V_PROJETOS_ORGAOS", params, cached=self.cacheTime)
+            res = self.api.get("V_PROJETOS_ORGAOS", params, cache_time=0)
             return res.content[0] if res is not None else {}
         except ValueError:
             return {}
@@ -427,7 +433,7 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
                 'SITUACAO': self.COD_SITUACAO_ATIVO
             })
             resultado_consulta = self.api.post(self.path, orgao)
-        except POSTException:
+        except APIException:
             resultado_consulta = None
         return resultado_consulta
 
@@ -449,7 +455,7 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
             "ORIGEM",
         }
         try:
-            res = self.api.get("V_PROJETOS_ORGAOS", params,  cached=0)
+            res = self.api.get("V_PROJETOS_ORGAOS", params,  cache_time=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -461,7 +467,7 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
             if retorno and int(retorno.affectedRows) == 1:
                 return True
             return False
-        except POSTException:
+        except APIException:
             return False
 
     def deletar_orgao(self, id_orgao_projeto):
@@ -474,6 +480,9 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
             return False
         except Exception:
             return False
+
+
+
 
 class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
 
@@ -500,7 +509,7 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
                 'SITUACAO': self.COD_SITUACAO_ATIVO
             })
             resultado_consulta = self.api.post(self.path, participante)
-        except POSTException:
+        except APIException:
             resultado_consulta = None
         return resultado_consulta
 
@@ -523,7 +532,7 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
             "VINCULO"
         }
         try:
-            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cached=0)
+            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cache_time=0)
             return res.content if res is not None else []
         except ValueError:
             return []
@@ -565,7 +574,7 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
                   "ID_PARTICIPANTE": id_participante,
                   }
         try:
-            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cached=0)
+            res = self.api.get("V_PROJETOS_PARTICIPANTES", params,  cache_time=0)
             return res.content[0] if res is not None else None
         except ValueError:
             return None
@@ -596,7 +605,7 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
             if retorno and int(retorno.affectedRows) == 1:
                 return True
             return False
-        except POSTException:
+        except APIException:
             return False
 
     def deletar_participante(self, id_participante):
@@ -608,4 +617,5 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
                 return True
             return False
         except Exception:
+            # todo Esse tratamento não deveria melhorar ?
             return False
