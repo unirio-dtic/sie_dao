@@ -1,3 +1,5 @@
+import random
+import string
 from unirio.api import UNIRIOAPIRequest, APIServer
 from gluon import current
 import unittest
@@ -12,3 +14,6 @@ class SIETestCase(unittest.TestCase):
         super(SIETestCase, self).__init__(*args, **kwargs)
         self.api = UNIRIOAPIRequest(self.API_KEY_VALID, APIServer.PRODUCTION_DEVELOPMENT, cache=None)
         current.api = self.api
+
+    def _random_string(self, length):
+        return ''.join(random.choice(string.lowercase) for i in xrange(length))
