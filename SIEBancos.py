@@ -15,7 +15,7 @@ class SIEBancos(SIE):
             'ORDERBY': 'NOME_BANCO'
         }
         fields = ['ID_BANCO', 'COD_BANCO', 'DV_BANCO', 'NOME_BANCO']
-        return self.api.get(self.path, params, fields, cached=self.cacheTime).content
+        return self.api.get(self.path, params, fields, cache_time=self.cacheTime).content
 
 
 class SIEAgencias(SIE):
@@ -31,4 +31,4 @@ class SIEAgencias(SIE):
             'ORDERBY': 'COD_AGENCIA'
         }
         fields = ['ID_AGENCIA', 'COD_AGENCIA', 'DV_AGENCIA', 'NOME_AGENCIA']
-        return self.api.get(self.path, params, fields, cached=self.cacheTime).content
+        return self.api.get(self.path, params, fields, cache_time=self.cacheTime).content

@@ -35,10 +35,12 @@ class SIEBolsas(SIE):
             'SITUACAO_BOLSA',
             'IND_PERCENTUAL'
         ]
-        return self.api.get(self.path, params, fields, cached=self.cacheTime).content[0]
+        return self.api.get(self.path, params, fields, cache_time=self.cacheTime).content[0]
 
 
 class SIEBolsistas(SIE):
+    COD_SITUACAO_ATIVO = 'A'
+
     def __init__(self):
         super(SIEBolsistas, self).__init__()
         self.path = "BOLSISTAS"
@@ -78,7 +80,7 @@ class SIEBolsistas(SIE):
             'LMIN': 0,
             'LMAX': 1
         }
-        return self.api.get(self.path, params, cached=self.cacheTime if cached else 0).content[0]
+        return self.api.get(self.path, params, cache_time=self.cacheTime if cached else 0).content[0]
 
     def atualizarDadosBancarios(self, ID_BOLSISTA, dados):
         """
@@ -93,7 +95,7 @@ class SIEBolsistas(SIE):
             'ID_BOLSISTA': ID_BOLSISTA,
             'ID_AGENCIA': dados['ID_AGENCIA'],
             'CONTA_CORRENTE': dados['CONTA_CORRENTE'],
-            'SITUACAO_BOLSISTA': 'A'
+            'SITUACAO_BOLSISTA': self.COD_SITUACAO_ATIVO
         }
         return self.api.put(self.path, params)
 
@@ -114,7 +116,7 @@ class SIEBolsistas(SIE):
     def isBolsista(self, ID_CURSO_ALUNO):
         params = {
             'ID_CURSO_ALUNO': ID_CURSO_ALUNO,
-            'SITUACAO_BOLSISTA': 'A',
+            'SITUACAO_BOLSISTA': self.COD_SITUACAO_ATIVO,
             'LMIN': 0,
             'LMAX': 1
         }
@@ -134,16 +136,11 @@ class SIEBolsistas(SIE):
         params = {"LMIN": 0,
                   "LMAX": 999,
                   "CPF_COORDENADOR": cpf,
+                  "SITUACAO_BOLSISTA": self.COD_SITUACAO_ATIVO
                   }
 
-        fields = {
-            "NOME_BOLSISTA",
-            # TODO PRECISO DO NOME PROJETO
-            "ID_PARTICIPANTE",
-            "ID_PROJETO",
-        }
         try:
-            res = self.api.get("V_BOLSISTAS_PROJETOS", params,  cached=0)
+            res = self.api.get("V_BOLSISTAS_PROJETOS", params,  cache_time=0)
             return res.content if res is not None else []
         except ValueError:
             return []
