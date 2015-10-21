@@ -12,8 +12,11 @@ class SIETestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(SIETestCase, self).__init__(*args, **kwargs)
-        self.api = UNIRIOAPIRequest(self.API_KEY_VALID, APIServer.PRODUCTION_DEVELOPMENT, cache=None)
+        self.api = UNIRIOAPIRequest(self.API_KEY_VALID, APIServer.LOCAL, cache=None)
         current.api = self.api
 
     def _random_string(self, length):
         return ''.join(random.choice(string.lowercase) for i in xrange(length))
+
+    def _dummy_dict(self, size=3):
+        return {self._random_string(5): self._random_string(10) for k in xrange(0, size)}
