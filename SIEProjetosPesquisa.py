@@ -72,9 +72,8 @@ class SIEProjetosPesquisa(SIEProjetos):
         }
 
         try:
-            agencia = self.api.get("V_PROJETOS_ORGAOS", params, cache_time=0).content
-            return agencia[0] if agencia is not None else {}
-        except (AttributeError, ValueError):
+            return self.api.get("V_PROJETOS_ORGAOS", params, cache_time=0).first()
+        except NoContentException:
             return {}
 
     def get_projeto_as_row(self, id_projeto):
@@ -170,17 +169,20 @@ class SIEProjetosPesquisa(SIEProjetos):
         :return: Um dicionário contendo a entrada uma nova entrada da tabela PROJETOS
         """
 
-        projeto_padrao = {"EVENTO_TAB": self.COD_TABELA_TIPO_EVENTO, "EVENTO_ITEM": self.ITEM_TIPO_EVENTO_NAO_SE_APLICA,
-                          "TIPO_PUBLICO_TAB": self.COD_TABELA_TIPO_PUBLICO_ALVO,
-                          "TIPO_PUBLICO_ITEM": self.ITEM_TIPO_PUBLICO_3_GRAU,
-                          "ACESSO_PARTICIP": self.ACESSO_PARTICIPANTES_APENAS_COORDENADOR,
-                          "PAGA_BOLSA": self.NAO_PAGA_BOLSA,
-                          "AVALIACAO_TAB": self.COD_TABELA_AVALIACAO_PROJETOS_INSTITUICAO,
-                          "AVALIACAO_ITEM": self.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE,
-                          'ID_CLASSIFICACAO': self.ITEM_CLASSIFICACAO_PROJETO_PESQUISA,
-                          'SITUACAO_TAB': self.COD_TABELA_SITUACAO,
-                          'SITUACAO_ITEM': self.ITEM_SITUACAO_TRAMITE_REGISTRO,
-                          'FUNDACAO_TAB': self.COD_TABELA_FUNDACOES, "DT_REGISTRO": date.today()}
+        projeto_padrao = {
+            "EVENTO_TAB": self.COD_TABELA_TIPO_EVENTO,
+            "EVENTO_ITEM": self.ITEM_TIPO_EVENTO_NAO_SE_APLICA,
+            "TIPO_PUBLICO_TAB": self.COD_TABELA_TIPO_PUBLICO_ALVO,
+            "TIPO_PUBLICO_ITEM": self.ITEM_TIPO_PUBLICO_3_GRAU,
+            "ACESSO_PARTICIP": self.ACESSO_PARTICIPANTES_APENAS_COORDENADOR,
+            "PAGA_BOLSA": self.NAO_PAGA_BOLSA,
+            "AVALIACAO_TAB": self.COD_TABELA_AVALIACAO_PROJETOS_INSTITUICAO,
+            "AVALIACAO_ITEM": self.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE,
+            'ID_CLASSIFICACAO': self.ITEM_CLASSIFICACAO_PROJETO_PESQUISA,
+            'SITUACAO_TAB': self.COD_TABELA_SITUACAO,
+            'SITUACAO_ITEM': self.ITEM_SITUACAO_TRAMITE_REGISTRO,
+            'FUNDACAO_TAB': self.COD_TABELA_FUNDACOES, "DT_REGISTRO": date.today()
+        }
 
         projeto.update(projeto_padrao)
 
@@ -465,10 +467,10 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
         params = {"ID_ORGAO_PROJETO": id_orgao_projeto}
         try:
             retorno = self.api.delete(self.path, params)
-            if retorno and int(retorno.affectedRows) == 1:
+            if retorno and retorno.affectedRows == 1:
                 return True
             return False
-        except Exception:
+        except APIException:
             return False
 
 
