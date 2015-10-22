@@ -271,8 +271,8 @@ class SIEProjetos(SIE):
         SIEClassifProjetos().removerClassifProjetosDeProjeto(projeto['ID_PROJETO'])
 
         try:
-            documento = SIEDocumentos().getDocumento(projeto['ID_DOCUMENTO'])
-            SIEDocumentos().removerDocumento(documento)
+            documento = SIEDocumentos().get_documento(projeto['ID_DOCUMENTO'])
+            SIEDocumentos().remover_documento(documento)
         except ValueError:
             print "Documento %d não encontrado" % projeto['ID_DOCUMENTO']
 
@@ -300,10 +300,10 @@ class SIEProjetos(SIE):
         :param funcionario: Um dicionário referente a uma entrada na view V_FUNCIONARIO_IDS
         """
         projeto = self.getProjeto(ID_PROJETO)
-        documento = SIEDocumentos().getDocumento(projeto['ID_DOCUMENTO'])
+        documento = SIEDocumentos().get_documento(projeto['ID_DOCUMENTO'])
 
         if avaliacao == 9:
-            # fluxo = SIEFluxos().getProximosFluxosFromDocumento(documento)
+            # fluxo = SIEFluxos().get_proximos_fluxos_do_documento(documento)
             fluxo = NotImplementedError
         elif avaliacao == 2:
             fluxo = NotImplementedError
@@ -311,8 +311,8 @@ class SIEProjetos(SIE):
             raise ValueError("%d não é um tipo de avaliação reconhecido" % avaliacao)
 
         tramitacao = SIETramitacoes(documento)
-        novaTramitacao = tramitacao.criarTramitacao()
-        tramitacao.tramitarDocumento(
+        novaTramitacao = tramitacao.criar_tramitacao()
+        tramitacao.tramitar_documento(
             novaTramitacao,
             funcionario,
             fluxo

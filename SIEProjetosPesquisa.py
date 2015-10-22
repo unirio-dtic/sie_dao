@@ -215,7 +215,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         """
         ano = date.today().year
         numero_tipo_doc = SIENumeroTipoDocumento(ano, self.TIPO_DOCUMENTO)
-        num_ultimo_doc = str(numero_tipo_doc.proximoNumeroTipoDocumento()).zfill(4)  # NNNN
+        num_ultimo_doc = str(numero_tipo_doc.proximo_numero_tipo_documento()).zfill(4)  # NNNN
 
         return "P%s/%d" % (num_ultimo_doc, ano)  # PNNNN/AAAA
 
