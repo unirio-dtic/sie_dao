@@ -1,8 +1,9 @@
 # coding=utf-8
+
 from datetime import date, timedelta
 from time import strftime
 from gluon import current
-from deprecation import deprecated
+from deprecate import deprecated
 
 from sie import SIE
 

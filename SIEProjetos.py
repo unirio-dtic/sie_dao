@@ -1,7 +1,7 @@
 # coding=utf-8
 import base64
 from datetime import date, datetime
-from deprecation import deprecated
+from deprecate import deprecated
 from unirio.api.result import APIException
 from sie import SIE
 from gluon import current
@@ -9,6 +9,12 @@ from sie.SIEBolsistas import SIEBolsas, SIEBolsistas
 from sie.SIEDocumento import SIEDocumentos, SIETramitacoes, SIEFluxos
 from sie.SIEFuncionarios import SIEFuncionarios
 from sie.SIETabEstruturada import SIETabEstruturada
+
+try:
+    db_driver_module = __import__(current.db._adapter.driver_name)
+    IntegrityError = getattr(db_driver_module, "IntegrityError")  # failure to get trigger exception
+except ImportError:
+    IntegrityError = Exception
 
 
 __all__ = [
@@ -423,48 +429,12 @@ class SIEArquivosProj(SIE):
             "CONTEUDO_ARQUIVO": self.__conteudoDoArquivo(arquivo)
         }
         # TODO remover comentários quando BLOB estiver sendo salvo no DB2
-        #novoArquivoProj = self.api.post(self.path, arquivoProj)
-        #arquivoProj.update({"ID_ARQUIVO_PROJ": novoArquivoProj.insertId})
-        self.salvarDB2BLOB(arquivoProj)
+        # novoArquivoProj = self.api.post(self.path, arquivoProj)
+        # arquivoProj.update({"ID_ARQUIVO_PROJ": novoArquivoProj.insertId})
+        # self.salvarDB2BLOB(arquivoProj) # não era para estar aqui!
         self.salvarCopiaLocal(arquivo, arquivoProj, funcionario)
 
         return arquivoProj
-
-    def salvarDB2BLOB(self, arquivoProj):
-
-        ID_ARQUIVO_PROJ = 'NEXT VALUE FOR DBSM.SEQ_ARQUIVOS_PROJ'
-        CONCORRENCIA = '999'
-        ENDERECO_FISICO = str(current.request.client)
-
-        current.dbSie.executesql(""" SELECT ID_ARQUIVO_PROJ FROM NEW TABLE(
-																		INSERT INTO DBSM.ARQUIVOS_PROJ(
-																		                        ID_ARQUIVO_PROJ,
-																								ID_PROJETO,
-																								DT_INCLUSAO,
-																								TIPO_ARQUIVO_TAB,
-																								TIPO_ARQUIVO_ITEM,
-																								NOME_ARQUIVO,
-																								CONTEUDO_ARQUIVO,
-																								DT_ALTERACAO,
-																								HR_ALTERACAO,
-																								COD_OPERADOR,
-																								CONCORRENCIA)
-																								VALUES
-																								(
-																								""" +ID_ARQUIVO_PROJ + """,
-																								""" +arquivoProj["ID_PROJETO"] + """,
-																								CURRENT_DATE,
-																								""" + arquivoProj["TIPO_ARQUIVO_TAB"] + """,
-																								"""+arquivoProj["TIPO_ARQUIVO_ITEM"]+""",
-																								'""" + arquivoProj["NOME_ARQUIVO"] + """',
-																								""" + arquivoProj["CONTEUDO_ARQUIVO"] + """,
-																								CURRENT_DATE,
-																								CURRENT_TIME,
-																								'1',
-																								""" + CONCORRENCIA + """
-																								)
-																		)""", as_dict=True)
-        return dict()
 
     def salvarCopiaLocal(self, arquivo, arquivoProj, funcionario):
         """
@@ -494,8 +464,7 @@ class SIEArquivosProj(SIE):
         except IOError as e:
             if e.errno == 63:
                 current.session.flash += "Impossivel salvar o arquivo %s. Nome muito grande" % arquivo.filename
-        except psycopg2.IntegrityError:
-            # todo dependência estranha pra caralho....
+        except IntegrityError:
             current.db.rollback()
             current.session.flash += "Não é possível enviar mais de um arquivo por etapa"
         except Exception as e:
