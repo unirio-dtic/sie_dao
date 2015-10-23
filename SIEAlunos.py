@@ -44,14 +44,22 @@ class SIEAlunos(SIE):
         """
         return self.api.get("V_ALUNOS_ATIVOS", {"CPF_SEM_MASCARA": cpf}, cache_time=self.cacheTime).content[0]
 
+    def get_alunos_ativos_graduacao(self,nome_ou_nomes):
+        return self.get_alunos_ativos(nome_ou_nomes,"GRADUAÇÃO")
 
-    def get_alunos_ativos(self,query):
+    def get_alunos_ativos(self,nome_ou_nomes,tipo=None):
         """
 
-        :param query: string usada em uma query de like no bd
+        :param nome_ou_nomes: string usada em uma query de like no bd
         :return: lista de alunos que dão match na string passada em query
         """
-        params = {"LMIN": 0, "LMAX": 999, "NOME":query}
+        params = {"LMIN": 0,
+                  "LMAX": 999,
+                  "NOME":nome_ou_nomes
+                  }
+
+        if tipo:
+            params.update({"TIPO":tipo})
         #fields = ["ID_ALUNO", "NOME", "MATRICULA"]
         try:
             res = self.api.get("V_ALUNOS_ATIVOS",params, cache_time=0)

@@ -582,6 +582,25 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
         except ValueError:
             return None
 
+
+    def get_participante(self, id_projeto, id_pessoa):
+        """
+        Retorna dicionário com o participante de id_projeto e id_pessoa.
+        :return: dict com informações dos participantes, None caso contrário.
+        """
+        params = {"LMIN": 0,
+                  "LMAX": 1,
+                  "ID_PROJETO": id_projeto,
+                  "ID_PESSOA": id_pessoa,
+                  "SITUACAO": self.COD_SITUACAO_ATIVO
+                  }
+        try:
+            res = self.api.get("PARTICIPANTES_PROJ", params,  cache_time=0)
+            return res.content[0] if res is not None else None
+        except ValueError:
+            return None
+
+
     def from_form(self, form):
         """
         Converte as informações do form nas colunas referentes à tabela no SIE
