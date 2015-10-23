@@ -22,6 +22,8 @@ class SIEProjetosPesquisa(SIEProjetos):
     COD_TABELA_AVALIACAO_PROJETOS_INSTITUICAO = 6010  # => Avaliação dos projetos da Instituição
     COD_TABELA_SITUACAO = 6011
 
+
+    ITEM_TITULACAO_SUPERIOR_INCOMPLETO = 9
     ITEM_FUNDACOES_NAO_SE_APLICA = 1  # => Não se aplica
     ITEM_TIPO_EVENTO_NAO_SE_APLICA = 1  # => Não se aplica
     ITEM_TIPO_PUBLICO_3_GRAU = 8  # => 3o grau
@@ -319,8 +321,6 @@ class SIEProjetosPesquisa(SIEProjetos):
         params = {
             "LMIN": 0,
             "LMAX": 9999,
-            'ID_CLASSIFICACAO': self.ITEM_CLASSIFICACAO_PROJETO_PESQUISA,
-
         }
 
         if cpf_coordenador:
@@ -560,7 +560,7 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
             return None
 
 
-    def get_participante(self, id_projeto, id_pessoa):
+    def get_participante_candidato_bolsista(self, id_projeto, id_pessoa):
         """
         Retorna dicionário com o participante de id_projeto e id_pessoa.
         :return: dict com informações dos participantes, None caso contrário.
@@ -569,7 +569,8 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
                   "LMAX": 1,
                   "ID_PROJETO": id_projeto,
                   "ID_PESSOA": id_pessoa,
-                  "SITUACAO": self.COD_SITUACAO_ATIVO
+                  "SITUACAO": self.COD_SITUACAO_ATIVO,
+                  "FUNCAO_ITEM": SIEProjetosPesquisa.ITEM_FUNCOES_PROJ_CANDIDATO_BOLSISTA
                   }
         try:
             res = self.api.get("PARTICIPANTES_PROJ", params,  cache_time=0)

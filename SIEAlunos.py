@@ -45,7 +45,7 @@ class SIEAlunos(SIE):
         return self.api.get("V_ALUNOS_ATIVOS", {"CPF_SEM_MASCARA": cpf}, cache_time=self.cacheTime).content[0]
 
     def get_alunos_ativos_graduacao(self,nome_ou_nomes):
-        return self.get_alunos_ativos(nome_ou_nomes,"GRADUAÇÃO")
+        return self.get_alunos_ativos(nome_ou_nomes,"graduação")
 
     def get_alunos_ativos(self,nome_ou_nomes,tipo=None):
         """
@@ -59,7 +59,7 @@ class SIEAlunos(SIE):
                   }
 
         if tipo:
-            params.update({"TIPO":tipo})
+            params.update({"TIPO_DE_ALUNO":tipo})
         #fields = ["ID_ALUNO", "NOME", "MATRICULA"]
         try:
             res = self.api.get("V_ALUNOS_ATIVOS",params, cache_time=0)
