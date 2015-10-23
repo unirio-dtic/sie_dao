@@ -2,7 +2,6 @@
 from unirio.api.exceptions import APIException, NoContentException
 from sie.SIETabEstruturada import SIETabEstruturada
 from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj, SIEOrgaosProjetos
-from sie.SIEDocumento import SIEDocumentos, SIENumeroTipoDocumento
 from sie.sie_utils import campos_sie_lower
 from pydal.objects import Row
 from datetime import date, datetime
@@ -46,16 +45,6 @@ class SIEProjetosPesquisa(SIEProjetos):
     def __init__(self):
         super(SIEProjetosPesquisa, self).__init__()
         self.TIPO_DOCUMENTO = 217
-
-    def registrar_projeto(self, projeto, funcionario):
-        novo_documento = self.criar_documento_projeto(funcionario)
-        projeto.update({
-            "ID_DOCUMENTO": novo_documento["ID_DOCUMENTO"],
-            "NUM_PROCESSO": novo_documento["NUM_PROCESSO"],
-
-        })
-
-        # put PROJETO_ID
 
     def get_agencia_fomento(self, id_projeto):
         """
@@ -164,8 +153,6 @@ class SIEProjetosPesquisa(SIEProjetos):
         """
         :type projeto: dict
         :param projeto: Um projeto a ser inserido no banco
-        :type funcionario: dict
-        :param funcionario: Dicionário de IDS de um funcionário
         :return: Um dicionário contendo a entrada uma nova entrada da tabela PROJETOS
         """
 
@@ -201,23 +188,6 @@ class SIEProjetosPesquisa(SIEProjetos):
             return False
         except APIException:
             return False
-
-    def criar_documento_projeto(self, funcionario):
-        num_processo = self.proximo_numero_processo()
-        return SIEDocumentos().criar_documento(self.TIPO_DOCUMENTO, num_processo, funcionario)
-
-    def proximo_numero_processo(self):
-        """
-        Número do processo é formado através da concatenação de um ID_TIPO_DOC, um sequencial e o ano do documento
-
-        :rtype : str
-        :return: Retorna o NUM_PROCESSO gerado a partir da lógica de negócio
-        """
-        ano = date.today().year
-        numero_tipo_doc = SIENumeroTipoDocumento(ano, self.TIPO_DOCUMENTO)
-        num_ultimo_doc = str(numero_tipo_doc.proximo_numero_tipo_documento()).zfill(4)  # NNNN
-
-        return "P%s/%d" % (num_ultimo_doc, ano)  # PNNNN/AAAA
 
     def get_lista_opcoes_titulacao(self):
         """
