@@ -10,7 +10,7 @@ from gluon import current
 
 from sie import SIE
 from sie.SIEBolsistas import SIEBolsas, SIEBolsistas
-from sie.SIEDocumento import SIEDocumentos, SIETramitacoes, SIEFluxos
+from sie.SIEDocumento import SIEDocumentoDAO, SIETramitacoes, SIEFluxos
 from sie.SIEFuncionarios import SIEFuncionarios
 from sie.SIETabEstruturada import SIETabEstruturada
 
@@ -208,7 +208,7 @@ class SIEProjetos(SIE):
         :param edicao: Uma entrada da tabela `edicao`
         :return: Um dicionário contendo a entrada uma nova entrada da tabela PROJETOS
         """
-        novoDocumento = SIEDocumentos().criarDocumento(funcionario)
+        novoDocumento = SIEDocumentoDAO().criar_documento(215, funcionario)
         projeto.update({
             "ID_DOCUMENTO": novoDocumento["ID_DOCUMENTO"],
             "ID_UNIDADE": SIECursosDisciplinas().getIdUnidade(projeto['ID_CURSO']),
@@ -271,8 +271,8 @@ class SIEProjetos(SIE):
         SIEClassifProjetos().removerClassifProjetosDeProjeto(projeto['ID_PROJETO'])
 
         try:
-            documento = SIEDocumentos().get_documento(projeto['ID_DOCUMENTO'])
-            SIEDocumentos().remover_documento(documento)
+            documento = SIEDocumentoDAO().get_documento(projeto['ID_DOCUMENTO'])
+            SIEDocumentoDAO().remover_documento(documento)
         except ValueError:
             print "Documento %d não encontrado" % projeto['ID_DOCUMENTO']
 
@@ -300,7 +300,7 @@ class SIEProjetos(SIE):
         :param funcionario: Um dicionário referente a uma entrada na view V_FUNCIONARIO_IDS
         """
         projeto = self.getProjeto(ID_PROJETO)
-        documento = SIEDocumentos().get_documento(projeto['ID_DOCUMENTO'])
+        documento = SIEDocumentoDAO().get_documento(projeto['ID_DOCUMENTO'])
 
         if avaliacao == 9:
             # fluxo = SIEFluxos().get_proximos_fluxos_do_documento(documento)
@@ -345,7 +345,7 @@ class SIEArquivosProj(SIE):
     def get_arquivo_projeto(self, id_projeto):
         """
         Retorna um dicionário contendo a ata de departamento que satisfaça o id_projeto ou None, caso tal arquivo não exista
-        :param id_projet:
+        :param id_projeto:
         :return:
         """
         return self.get_arquivo(id_projeto, self.ITEM_TIPO_ARQUIVO_PROJETO)
@@ -353,7 +353,7 @@ class SIEArquivosProj(SIE):
     def get_ata_departamento(self, id_projeto):
         """
         Retorna um dicionário contendo o arquivo de projeto que satisfaça o id_projeto ou None, caso tal arquivo não exista
-        :param id_projet:
+        :param id_projeto:
         :return:
         """
         return self.get_arquivo(id_projeto, self.ITEM_TIPO_ARQUIVO_ATA_DEPARTAMENTO)
@@ -369,7 +369,7 @@ class SIEArquivosProj(SIE):
     def get_termo_outorga(self, id_projeto):
         """
         Retorna um dicionário contendo o termo de outorga que satisfaça o id_projeto ou None, caso tal arquivo não exista
-        :param id_projet:
+        :param id_projeto:
         :return:
         """
         return self.get_arquivo(id_projeto, self.ITEM_TIPO_ARQUIVO_TERMO_OUTORGA)
@@ -400,8 +400,8 @@ class SIEArquivosProj(SIE):
         """
         :type arquivo: FieldStorage
         :param arquivo: Um arquivo correspondente a um projeto que foi enviado para um formulário
-        :type projeto: int/string
-        :param projeto: Um id de projeto
+        :type id_projeto: int/string
+        :param id_projeto: Um id de projeto
         :rtype : dict
         """
         arquivo_proj = {
@@ -450,7 +450,7 @@ class SIEArquivosProj(SIE):
 
         return arquivoProj
 
-    def salvarCopiaLocal(self, arquivo, arquivoProj, funcionario, edicao):
+    def salvarCopiaLocal(self, arquivo, arquivo_proj, funcionario, edicao):
         """
 
         :type arquivo: FieldStorage
@@ -463,6 +463,7 @@ class SIEArquivosProj(SIE):
         :param edicao: Uma entrada da tabela `edicao`
         """
         # TODO id_arquivo_proj não está com o comportamente desejado, mas é necessário até que BLOBS sejam inseridos corretamente. Remover o mesmo após resolver problema
+        # noinspection PyExceptClausesOrder,PyBroadException
         try:
             with open(arquivo.fp.name, 'rb') as stream:
                 i = current.db.projetos.insert(
@@ -470,10 +471,10 @@ class SIEArquivosProj(SIE):
                     anexo_nome=arquivo.filename,
                     id_arquivo_proj=None,
                     id_funcionario=funcionario["ID_FUNCIONARIO"],
-                    id_projeto=arquivoProj["ID_PROJETO"],
+                    id_projeto=arquivo_proj["ID_PROJETO"],
                     edicao=edicao.id,
                     arquivo=current.db.projetos.arquivo.store(stream, arquivo.filename),      # upload
-                    tipo_arquivo_item=arquivoProj["TIPO_ARQUIVO_ITEM"],
+                    tipo_arquivo_item=arquivo_proj["TIPO_ARQUIVO_ITEM"],
                     dt_envio=datetime.now()
                 )
                 print "Gravou localmente [%s] com ID [%d]" % (arquivo.filename, i)
@@ -532,10 +533,8 @@ class SIEClassificacoesPrj(SIE):
         CLASSIFICACAO_ITEM  => 1 - Tipos de Projetos, 41 - Disciplina vinculada
         CODIGO PARA CLASSIFICACAO_ITEM = 1 => 1 - Ensino, 2 - Pesquisa, 3 - Extensão, 4 - Desenvolvimento institucional
 
-        :type classificacaoItem: int
-        :type codigo: int
-        :param classificacaoItem:
-        :param codigo: COD_DISCIPLINA de uma disciplina do SIE
+        :type classificacao_item: int
+        :param classificacao_item:
         :rtype : list
         :return: Uma lista de dicionários com os tipos de projetos
         """
@@ -616,7 +615,6 @@ class SIEParticipantesProjs(SIE):
         TITULACAO_ITEM = 9      => Superior Incompleto
         FUNCAO_ITEM = 3         => Bolsista
 
-        :param ID_PROJETO: Identificador único de uma entrada na tabela PROJETOS
         :param aluno: Dicionário de atributos de um aluno
         :rtype : unirio.api.apiresult.APIPostResponse
         """

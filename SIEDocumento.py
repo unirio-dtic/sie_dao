@@ -9,36 +9,23 @@ from sie import SIE
 
 
 __all__ = [
-    "SIEDocumentos",
-    "SIENumeroTipoDocumento",
+    "SIEDocumentoDAO",
     "SIETramitacoes",
     "SIEFluxos"
 ]
 
 
-class SIEDocumentos(SIE):
+class SIEDocumentoDAO(SIE):
     # ID_TIPO_DOC = 215
 
     def __init__(self):
-        super(SIEDocumentos, self).__init__()
+        super(SIEDocumentoDAO, self).__init__()
         self.path = "DOCUMENTOS"
 
-    @deprecated
-    def proximoNumeroProcesso(self):
+    def criar_documento(self, id_tipo_doc, funcionario, sem_tramite=False):
         """
-        Número do processo é formado através da concatenação de um ID_TIPO_DOC, um sequencial e o ano do documento
+        Inclui um novo documento eletronico do SIE e retorna ele. Uma tramitação inicial já é iniciada (exceto se for especificado sem_tramite=True).
 
-        :rtype : str
-        :return: Retorna o NUM_PROCESSO gerado a partir da lógica de negócio
-        """
-        ano = current.session.edicao.dt_inicial_projeto.year
-        numeroTipoDoc = SIENumeroTipoDocumento(ano, 215)
-
-        NUM_ULTIMO_DOC = str(numeroTipoDoc.proximo_numero_tipo_documento()).zfill(4)
-        return "%d%s/%d" % (215, NUM_ULTIMO_DOC, ano)
-
-    def criar_documento(self, tipo_doc, num_processo, funcionario):
-        """
         SITUACAO_ATUAL = 1      => Um novo documento sempre se inicia com 1
         TIPO_PROPRIETARIO = 20  => Indica restrição de usuários
         TIPO_ORIGEM = 20        => Recebe mesmo valor de TIPO_PROPRIETARIO
@@ -49,11 +36,31 @@ class SIEDocumentos(SIE):
         IND_ELIMINADO, IND_AGENDAMENTO, IND_RESERVADO,
         IND_EXTRAVIADO, TEMPO_ESTIMADO => Valores fixos (Seguimos documento com recomendações da síntese)
 
+        :param id_tipo_doc: O id do tipo de documento. (Informação na tabela TIPOS_DOCUMENTOS)
+        :type  id_tipo_doc: int
+
+        :param funcionario: Um dicionário referente a uma entrada na view V_FUNCIONARIO_IDS
+        :type  funcionario: dict
+
+        :param sem_tramite: Flag para indicar se é para ignorar a criação de um tramite inicial.
+        :type  sem_tramite: bool
+
         :rtype : dict
-        :return: Um dicionário contendo uma entrada da tabela DOCUMENTOS
+        :return: Um dicionário contendo a entrada da tabela DOCUMENTOS correspondente ao documento criado.
         """
-        documento = {
-            "ID_TIPO_DOC": tipo_doc,
+
+        params = {"ID_TIPO_DOC": id_tipo_doc, "ANO_TIPO_DOC": date.today().year}
+        fields = ["ID_NUMERO_TIPO_DOC", "NUM_ULTIMO_DOC"]
+
+        num_processo_handler = self._NumProcessoHandler(self, date.today().year, id_tipo_doc)
+
+        # determinando ultimo numero
+
+        # num_processo = self._NumProcessoAux(self, current.session.edicao.dt_inicial_projeto.year, id_tipo_doc).gerar_numero_processo()
+        num_processo = num_processo_handler.gerar_numero_processo()
+
+        novo_documento = {
+            "ID_TIPO_DOC": id_tipo_doc,
             "ID_PROCEDENCIA": funcionario["ID_CONTRATO_RH"],
             "ID_PROPRIETARIO": funcionario["ID_USUARIO"],
             "ID_CRIADOR": funcionario["ID_USUARIO"],
@@ -72,28 +79,47 @@ class SIEDocumentos(SIE):
             "TEMPO_ESTIMADO": 1,
             "SEQUENCIA": 1
         }
+
+        # noinspection PyBroadException
         try:
-            novo_documento = self.api.post(self.path, documento)
-            try:
-                documento.update({"ID_DOCUMENTO": novo_documento.insertId})
-                dao_tramitacao = SIETramitacoes(documento)
-                nova_tramitacao = dao_tramitacao.criar_tramitacao()
+            # cria o documento usando a API
+            novo_documento = self.api.post(self.path, novo_documento)
 
-                dao_tramitacao.tramitar_documento(
-                    nova_tramitacao,
-                    funcionario,
-                    SIEFluxos().get_fluxo_do_documento(documento)
-                )
-                return documento
+            # atualiza id da instancia
+            novo_documento.update({"ID_DOCUMENTO": novo_documento.insertId})
 
-            except Exception as e:
-                session.flash = "Não foi possível criar uma tramitação para o documento %d" % novo_documento.insertId
-                raise e
-        except Exception:
+        except Exception as e:
             # TODO deletaNovoDocumento
+
             # TODO decrementar proximo_numero_tipo_documento
+            num_processo_handler.reverter_ultimo_numero_processo()
+
             if not current.session.flash:
                 current.session.flash = "Não foi possível criar um novo documento"
+                raise e
+
+        # se nao for para tramitar, paramos por aqui
+        if sem_tramite:
+            return novo_documento
+
+        try:
+            # obtendo um dao das tramitacoes
+            dao_tramitacao = SIETramitacoes(novo_documento)
+
+            # criando tramitacao
+            nova_tramitacao = dao_tramitacao.criar_tramitacao()
+
+            # tramitando o documento criando
+            dao_tramitacao.tramitar_documento(
+                nova_tramitacao,
+                funcionario,
+                SIEFluxos().get_fluxo_do_documento(novo_documento)
+            )
+            return novo_documento
+
+        except Exception as e:
+            session.flash = "Não foi possível criar uma tramitação para o documento %d" % novo_documento.insertId
+            raise e
 
     def atualizar_situacao_documento(self, documento, fluxo):
         novo_documento = {
@@ -129,85 +155,134 @@ class SIEDocumentos(SIE):
         if response.affectedRows > 0:
             del documento
 
+    class _NumProcessoHandler(object):
+        def __init__(self, dao, ano, id_tipo_documento):
+            self.dao = dao
+            self.ano = ano
+            self.id_tipo_doc = id_tipo_documento
+            self.path = "NUMEROS_TIPO_DOC"
 
-class SIENumeroTipoDocumento(SIE):
-    def __init__(self, ano, id_tipo_documento):
-        super(SIENumeroTipoDocumento, self).__init__()
-        self.path = "NUMEROS_TIPO_DOC"
-        self.ano = ano
-        self.ID_TIPO_DOC = id_tipo_documento
+        def gerar_numero_processo(self):
+            """
+            Gera o próximo número de processo a ser usado, formado de acordo com a mascara do tipo de documento.
 
-    def proximo_numero_tipo_documento(self):
-        """
-        O método retorna qual será o próximo NUM_TIPO_DOC que será utilizado. Caso já exista
-        uma entrada neta tabela para o ANO_TIPO_DOC e ID_TIPO_DOC, retornará o ultimo número,
-        caso contrário, uma nova entrada será criada.
-
-        :rtype : int
-        """
-        params = {
-            "ID_TIPO_DOC": self.ID_TIPO_DOC,
-            "ANO_TIPO_DOC": self.ano
-        }
-        fields = ["ID_NUMERO_TIPO_DOC", "NUM_ULTIMO_DOC"]
-        try:
-            numero_tipo_doc = self.api.get(self.path, params, fields)
-            id_numero_tipo_doc = numero_tipo_doc.content[0]["ID_NUMERO_TIPO_DOC"]
-            numero = numero_tipo_doc.content[0]["NUM_ULTIMO_DOC"] + 1
+            :rtype : str
+            :return: Retorna o NUM_PROCESSO gerado a partir da lógica de negócio
+            """
             try:
-                self.atualizar_total_numero_ultimo_documento(id_numero_tipo_doc, numero)
+                mascara = self.dao.api.get("TIPOS_DOCUMENTOS", {"ID_TIPO_DOC": self.id_tipo_doc}, ["MASCARA_TIPO_DOC"]).content[0]["MASCARA_TIPO_DOC"]
+
+                if mascara == "pNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
+                    self.__gera_numero_processo_projeto("p")
+
+                elif mascara == "eNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
+                    self.__gera_numero_processo_projeto("e")
+
+                elif mascara == "xNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
+                    self.__gera_numero_processo_projeto("x")
+
+                elif mascara == "dNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
+                    self.__gera_numero_processo_projeto("d")
+
+                else:  # interpretar a mascara
+                    # TODO Criar parser para mascara para entender como gerar o numero do processo de modo generico
+                    return None
+
             except Exception as e:
+                current.session.flash = "Erro ao gerir numeros de processo."
                 raise e
-        except ValueError:
-            self.atualizar_indicadores_default()
-            numero = self.criar_novo_numero_tipo_documento()
 
-        return numero
+        def reverter_ultimo_numero_processo(self):  # TODO testar isso
+            """ Reverte a geração do último numero de processo. """
 
-    def atualizar_indicadores_default(self):
-        """
-        O método atualiza todos os IND_DEFAULT para N para ID_TIPO_DOC da instãncia
+            params = {"ID_TIPO_DOC": self.id_tipo_doc, "ANO_TIPO_DOC": self.ano}
+            fields = ["ID_NUMERO_TIPO_DOC", "NUM_ULTIMO_DOC"]
+            try:
+                numero_tipo_doc = self.dao.api.get(self.path, params, fields)
+                numero = numero_tipo_doc.content[0]["NUM_ULTIMO_DOC"] - 1
+                try:
+                    self.__atualizar_total_numero_ultimo_documento(numero_tipo_doc.content[0]["ID_NUMERO_TIPO_DOC"], numero)
+                except Exception as e:
+                    current.session.flash = "Erro ao reverter geração de numero de processo."
+                    raise e
+            except ValueError as e:
+                current.session.flash = "Não existem registros de numeros de processo para o tipo de documento " + str(self.id_tipo_doc)
+                raise e
 
-        """
-        numeros_documentos = self.api.get(
-            self.path,
-            {"ID_TIPO_DOC": self.ID_TIPO_DOC},
-            ["ID_NUMERO_TIPO_DOC"]
-        )
-        for numero in numeros_documentos.content:
-            self.api.put(
+        def __proximo_numero_tipo_documento(self):
+            """
+            O método retorna qual será o próximo NUM_TIPO_DOC que será utilizado. Caso já exista
+            uma entrada nesta tabela para o ANO_TIPO_DOC e ID_TIPO_DOC, retornará o ultimo número,
+            caso contrário, uma nova entrada será criada.
+
+            :rtype : int
+            """
+
+            params = {"ID_TIPO_DOC": self.id_tipo_doc, "ANO_TIPO_DOC": self.ano}
+            fields = ["ID_NUMERO_TIPO_DOC", "NUM_ULTIMO_DOC"]
+
+            try:
+                numero_tipo_doc = self.dao.api.get(self.path, params, fields)
+                id_numero_tipo_doc = numero_tipo_doc.content[0]["ID_NUMERO_TIPO_DOC"]
+                numero = numero_tipo_doc.content[0]["NUM_ULTIMO_DOC"] + 1
+                try:
+                    self.__atualizar_total_numero_ultimo_documento(id_numero_tipo_doc, numero)
+                except Exception as e:
+                    current.session.flash = "Erro ao gerir numeros de processo."
+                    raise e
+            except ValueError:
+                self.__atualizar_indicadores_default()
+                numero = self.__criar_novo_numero_tipo_documento()
+
+            return numero
+
+        def __atualizar_indicadores_default(self):
+            """
+            O método atualiza todos os IND_DEFAULT para N para ID_TIPO_DOC da instãncia
+
+            """
+            numeros_documentos = self.dao.api.get(self.path, {"ID_TIPO_DOC": self.id_tipo_doc}, ["ID_NUMERO_TIPO_DOC"])
+            for numero in numeros_documentos.content:
+                self.dao.api.put(
+                    self.path,
+                    {
+                        "ID_NUMERO_TIPO_DOC": numero["ID_NUMERO_TIPO_DOC"],
+                        "IND_DEFAULT": "N"
+                    }
+                )
+
+        def __atualizar_total_numero_ultimo_documento(self, id_numero_tipo_documento, numero):
+            self.dao.api.put(
                 self.path,
                 {
-                    "ID_NUMERO_TIPO_DOC": numero["ID_NUMERO_TIPO_DOC"],
-                    "IND_DEFAULT": "N"
+                    "ID_NUMERO_TIPO_DOC": id_numero_tipo_documento,
+                    "NUM_ULTIMO_DOC": numero
                 }
             )
 
-    def atualizar_total_numero_ultimo_documento(self, id_numero_tipo_documento, numero):
-        self.api.put(
-            self.path,
-            {
-                "ID_NUMERO_TIPO_DOC": id_numero_tipo_documento,
-                "NUM_ULTIMO_DOC": numero
+        def __criar_novo_numero_tipo_documento(self):
+            """
+            num_ultimo_doc retorna 1 para que não seja necessário chamar novo método para atualizar
+
+            :rtype : int
+            :return: NUM_ULTIMO_DOC da inserção
+            """
+            num_ultimo_doc = 1
+            params = {
+                "ID_TIPO_DOC": self.id_tipo_doc,
+                "ANO_TIPO_DOC": self.ano,
+                "IND_DEFAULT": "S",
+                "NUM_ULTIMO_DOC": num_ultimo_doc
             }
-        )
+            self.dao.api.post(self.path, params)
+            return num_ultimo_doc
 
-    def criar_novo_numero_tipo_documento(self):
-        """
-        num_ultimo_doc retorna 1 para que não seja necessário chamar novo método para atualizar
-
-        :rtype : int
-        :return: NUM_ULTIMO_DOC da inserção
-        """
-        num_ultimo_doc = 1
-        params = {
-            "ID_TIPO_DOC": self.ID_TIPO_DOC,
-            "ANO_TIPO_DOC": self.ano,
-            "IND_DEFAULT": "S",
-            "NUM_ULTIMO_DOC": num_ultimo_doc
-        }
-        self.api.post(self.path, params)
-        return num_ultimo_doc
+        @deprecated
+        def __gera_numero_processo_projeto(self, tipo):
+            """ Codigo especifico para gerar numero de processo de projetos
+                OBS: esse metodo é temporario. Deve-se usar o parser generico. """
+            num_ultimo_doc = str(self.__proximo_numero_tipo_documento()).zfill(4)  # NNNN
+            return tipo + ("%s/%d" % (num_ultimo_doc, self.ano))  # _NNNN/AAAA
 
 
 class SIETramitacoes(SIE):
@@ -296,7 +371,7 @@ class SIETramitacoes(SIE):
             }
             self.api.put(self.path, nova_tramitacao)
             try:
-                SIEDocumentos().atualizar_situacao_documento(self.documento, fluxo)
+                SIEDocumentoDAO().atualizar_situacao_documento(self.documento, fluxo)
             except Exception:
                 current.session.flash = "Não foi possível atualizar o documento"
         except Exception:
