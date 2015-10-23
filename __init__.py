@@ -1,6 +1,7 @@
 from gluon import current
 import os
 import base64
+import abc
 
 __all__ = [
     "SIEAlunos"
@@ -16,14 +17,12 @@ __all__ = [
 
 
 class SIE(object):
-    def __init__(self, api=current.api):
-        """
+    __metaclass__ = abc.ABCMeta
+    cacheTime = 86400
 
-        :type api: unirio.api.request.UNIRIOAPIRequest
-        :param api: UNIRIO API
-        """
-        self.api = api
-        self.cacheTime = 86400  # Um dia
+    @property
+    def api(self):
+        return current.api
 
     @staticmethod
     def handle_blob(arquivo):

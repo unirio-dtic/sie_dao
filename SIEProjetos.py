@@ -1,15 +1,27 @@
 # coding=utf-8
+
 import base64
-import psycopg2
 from datetime import date, datetime
 from deprecate import deprecated
-from unirio.api.result import APIException
-from sie import SIE
+
+# TODO remover a dependencia do current (chamadas à session.current.flash),
+# TODO pra isso, lançar exceções mais significativas para serem tratadas acima
 from gluon import current
+
+from sie import SIE
 from sie.SIEBolsistas import SIEBolsas, SIEBolsistas
 from sie.SIEDocumento import SIEDocumentos, SIETramitacoes, SIEFluxos
 from sie.SIEFuncionarios import SIEFuncionarios
 from sie.SIETabEstruturada import SIETabEstruturada
+
+from unirio.api.result import APIException
+from unirio.api.exceptions import NoContentException
+
+try:
+    db_driver_module = __import__(current.db._adapter.driver_name)
+    IntegrityError = getattr(db_driver_module, "IntegrityError")  # failure to get trigger exception
+except ImportError:
+    IntegrityError = Exception
 
 
 __all__ = [
@@ -45,8 +57,8 @@ class SIEProjetos(SIE):
         }
 
         try:
-            return self.api.get(self.path, params, cache_time=0).content[0]
-        except (ValueError, AttributeError):
+            return self.api.get(self.path, params, cache_time=0).first()
+        except NoContentException:
             return None
 
     def getProjetoDados(self, ID_PROJETO):
@@ -67,8 +79,8 @@ class SIEProjetos(SIE):
         }
 
         try:
-            return self.api.get("V_PROJETOS_DADOS", params, cache_time=self.cacheTime).content[0]
-        except (ValueError, AttributeError):
+            return self.api.get("V_PROJETOS_DADOS", params, cache_time=self.cacheTime).first()
+        except NoContentException:
             return None
 
     def getCoordenador(self, ID_PROJETO):
@@ -88,10 +100,9 @@ class SIEProjetos(SIE):
         }
 
         try:
-            c = self.api.get("PARTICIPANTES_PROJ", params, cache_time=self.cacheTime).content[0]
-            return self.api.get("PESSOAS", {"ID_PESSOA": c['ID_PESSOA']},
-                                                cache_time=self.cacheTime).content[0]
-        except (ValueError, AttributeError):
+            c = self.api.get("PARTICIPANTES_PROJ", params, cache_time=self.cacheTime).first()
+            return self.api.get("PESSOAS", {"ID_PESSOA": c['ID_PESSOA']}, cache_time=self.cacheTime).first()
+        except NoContentException:
             return None
 
     def getDisciplina(self, ID_PROJETO):
@@ -110,11 +121,11 @@ class SIEProjetos(SIE):
         }
 
         try:
-            return self.api.get("V_PROJETOS_DADOS", params, cache_time=self.cacheTime).content[0]['NOME_DISCIPLINA']
-        except (ValueError, AttributeError):
+            return self.api.get("V_PROJETOS_DADOS", params, cache_time=self.cacheTime).first()['NOME_DISCIPLINA']
+        except NoContentException:
             return None
 
-    def projetosDeEnsino(self, edicao, params={}):
+    def projetosDeEnsino(self, edicao, params=None):
         """
 
         :type edicao: gluon.storage.Storage
@@ -124,6 +135,9 @@ class SIEProjetos(SIE):
         :rtype : list
         :return: Uma lista de projetos de ensino
         """
+        if not params:
+            params = {}
+
         params.update({
             "ID_CLASSIFICACAO": 40161,
             "DT_INICIAL": edicao.dt_inicial_projeto,
@@ -133,7 +147,7 @@ class SIEProjetos(SIE):
 
         return self.api.get(self.path, params).content
 
-    def projetosDadosEnsino(self, edicao, params={}):
+    def projetosDadosEnsino(self, edicao, params=None):
         """
 
         :type edicao: gluon.storage.Storage
@@ -143,6 +157,9 @@ class SIEProjetos(SIE):
         :rtype : list
         :return: Uma lista de projetos de ensino
         """
+        if not params:
+            params = {}
+
         params.update({
             "ID_CLASSIFICACAO": 40161,
             "DT_INICIAL": edicao.dt_inicial_projeto,
@@ -174,7 +191,7 @@ class SIEProjetos(SIE):
             return True
 
     @deprecated
-    def salvarProjeto(self, projeto, funcionario):
+    def salvarProjeto(self, projeto, funcionario, edicao):
         """
         EVENTO_TAB              => Tipos de Eventos
         EVENTO_ITEM = 1         => Não se aplica
@@ -187,6 +204,8 @@ class SIEProjetos(SIE):
         :param projeto: Um projeto a ser inserido no banco
         :type funcionario: dict
         :param funcionario: Dicionário de IDS de um funcionário
+        :type edicao: gluon.storage.Storage
+        :param edicao: Uma entrada da tabela `edicao`
         :return: Um dicionário contendo a entrada uma nova entrada da tabela PROJETOS
         """
         novoDocumento = SIEDocumentos().criarDocumento(funcionario)
@@ -200,7 +219,7 @@ class SIEProjetos(SIE):
             "TIPO_PUBLICO_ITEM": 8,
             "ACESSO_PARTICIP": "S",
             "PAGA_BOLSA": "S",
-            "DT_INICIAL": current.session.edicao.dt_inicial_projeto,
+            "DT_INICIAL": edicao.dt_inicial_projeto,
             "DT_REGISTRO": date.today(),
             "AVALIACAO_TAB": 6010,
             "AVALIACAO_ITEM": 2
@@ -268,7 +287,7 @@ class SIEProjetos(SIE):
         """
         return SIETabEstruturada().itemsDeCodigo(6011)
 
-    def tramitarDocumentoProjeto(self, ID_PROJETO, avaliacao):
+    def tramitarDocumentoProjeto(self, ID_PROJETO, avaliacao, funcionario):
         """
         avaliacao = 9           => indeferido (Indeferido)
         avaliacao = 2           => deferido (Em andamento)
@@ -277,6 +296,8 @@ class SIEProjetos(SIE):
         :param ID_PROJETO: Identificador único de um PROJETO
         :type avaliacao: int
         :param avaliacao: Um inteiro correspondente a uma avaliação
+        :type funcionario: dict
+        :param funcionario: Um dicionário referente a uma entrada na view V_FUNCIONARIO_IDS
         """
         projeto = self.getProjeto(ID_PROJETO)
         documento = SIEDocumentos().getDocumento(projeto['ID_DOCUMENTO'])
@@ -293,14 +314,12 @@ class SIEProjetos(SIE):
         novaTramitacao = tramitacao.criarTramitacao()
         tramitacao.tramitarDocumento(
             novaTramitacao,
-            current.session.funcionario,
+            funcionario,
             fluxo
         )
 
 
-
 class SIEArquivosProj(SIE):
-
 
     ITEM_TIPO_ARQUIVO_TERMO_OUTORGA = 19
     ITEM_TIPO_ARQUIVO_PROJETO = 1
@@ -367,7 +386,7 @@ class SIEArquivosProj(SIE):
             'TIPO_ARQUIVO_ITEM': tipo_arquivo,
             'LMIN': 0,
             'LMAX': 1,
-            'ORDERBY':'ID_ARQUIVO_PROJ DESC'
+            'ORDERBY': 'ID_ARQUIVO_PROJ DESC'
         }
 
         fields = ["NOME_ARQUIVO", "CONTEUDO_ARQUIVO"]
@@ -396,7 +415,7 @@ class SIEArquivosProj(SIE):
 
         try:
             novo_arquivo_proj = self.api.post(self.path, arquivo_proj)
-            arquivo_proj.update({"ID_ARQUIVO_PROJ": novo_arquivo_proj.insertId}) #????
+            arquivo_proj.update({"ID_ARQUIVO_PROJ": novo_arquivo_proj.insertId})  # ????
         except APIException:
             arquivo_proj = None
         return arquivo_proj
@@ -424,50 +443,14 @@ class SIEArquivosProj(SIE):
             "CONTEUDO_ARQUIVO": self.__conteudoDoArquivo(arquivo)
         }
         # TODO remover comentários quando BLOB estiver sendo salvo no DB2
-        #novoArquivoProj = self.api.post(self.path, arquivoProj)
-        #arquivoProj.update({"ID_ARQUIVO_PROJ": novoArquivoProj.insertId})
-        self.salvarDB2BLOB(arquivoProj)
+        # novoArquivoProj = self.api.post(self.path, arquivoProj)
+        # arquivoProj.update({"ID_ARQUIVO_PROJ": novoArquivoProj.insertId})
+        # self.salvarDB2BLOB(arquivoProj) # não era para estar aqui!
         self.salvarCopiaLocal(arquivo, arquivoProj, funcionario)
 
         return arquivoProj
 
-    def salvarDB2BLOB(self, arquivoProj):
-
-        ID_ARQUIVO_PROJ = 'NEXT VALUE FOR DBSM.SEQ_ARQUIVOS_PROJ'
-        CONCORRENCIA = '999'
-        ENDERECO_FISICO = str(current.request.client)
-
-        current.dbSie.executesql(""" SELECT ID_ARQUIVO_PROJ FROM NEW TABLE(
-																		INSERT INTO DBSM.ARQUIVOS_PROJ(
-																		                        ID_ARQUIVO_PROJ,
-																								ID_PROJETO,
-																								DT_INCLUSAO,
-																								TIPO_ARQUIVO_TAB,
-																								TIPO_ARQUIVO_ITEM,
-																								NOME_ARQUIVO,
-																								CONTEUDO_ARQUIVO,
-																								DT_ALTERACAO,
-																								HR_ALTERACAO,
-																								COD_OPERADOR,
-																								CONCORRENCIA)
-																								VALUES
-																								(
-																								""" +ID_ARQUIVO_PROJ + """,
-																								""" +arquivoProj["ID_PROJETO"] + """,
-																								CURRENT_DATE,
-																								""" + arquivoProj["TIPO_ARQUIVO_TAB"] + """,
-																								"""+arquivoProj["TIPO_ARQUIVO_ITEM"]+""",
-																								'""" + arquivoProj["NOME_ARQUIVO"] + """',
-																								""" + arquivoProj["CONTEUDO_ARQUIVO"] + """,
-																								CURRENT_DATE,
-																								CURRENT_TIME,
-																								'1',
-																								""" + CONCORRENCIA + """
-																								)
-																		)""", as_dict=True)
-        return dict()
-
-    def salvarCopiaLocal(self, arquivo, arquivoProj, funcionario):
+    def salvarCopiaLocal(self, arquivo, arquivoProj, funcionario, edicao):
         """
 
         :type arquivo: FieldStorage
@@ -476,6 +459,8 @@ class SIEArquivosProj(SIE):
         :param arquivo_proj: Um dicionário contendo uma entrada da tabela ARQUIVO_PROJS
         :type funcionario: dict
         :param funcionario: Dicionário de IDS de um funcionário
+        :type edicao: gluon.storage.Storage
+        :param edicao: Uma entrada da tabela `edicao`
         """
         # TODO id_arquivo_proj não está com o comportamente desejado, mas é necessário até que BLOBS sejam inseridos corretamente. Remover o mesmo após resolver problema
         try:
@@ -486,7 +471,7 @@ class SIEArquivosProj(SIE):
                     id_arquivo_proj=None,
                     id_funcionario=funcionario["ID_FUNCIONARIO"],
                     id_projeto=arquivoProj["ID_PROJETO"],
-                    edicao=current.session.edicao.id,
+                    edicao=edicao.id,
                     arquivo=current.db.projetos.arquivo.store(stream, arquivo.filename),      # upload
                     tipo_arquivo_item=arquivoProj["TIPO_ARQUIVO_ITEM"],
                     dt_envio=datetime.now()
@@ -495,7 +480,7 @@ class SIEArquivosProj(SIE):
         except IOError as e:
             if e.errno == 63:
                 current.session.flash += "Impossivel salvar o arquivo %s. Nome muito grande" % arquivo.filename
-        except psycopg2.IntegrityError:
+        except IntegrityError:
             current.db.rollback()
             current.session.flash += "Não é possível enviar mais de um arquivo por etapa"
         except Exception as e:
@@ -599,6 +584,7 @@ class SIEClassificacoesPrj(SIE):
             comites = None
 
         return comites
+
 
 class SIEParticipantesProjs(SIE):
     def __init__(self):
@@ -753,7 +739,7 @@ class SIEParticipantesProjs(SIE):
             'LMIN': 0,
             'LMAX': 1
         }
-        return self.api.get(self.path, params, cache_time=self.cacheTime).content[0]
+        return self.api.get(self.path, params, cache_time=self.cacheTime).first()
 
     def removerParticipante(self, ID_PARTICIPANTE):
         self.api.delete(self.path, {"ID_PARTICIPANTE": ID_PARTICIPANTE})
@@ -791,7 +777,10 @@ class SIECursosDisciplinas(SIE):
         super(SIECursosDisciplinas, self).__init__()
         self.path = "V_CURSOS_DISCIPLINAS"
 
-    def getCursos(self, params={}):
+    def getCursos(self, params=None):
+        if not params:
+            params = {}
+
         params.update({
             "LMIN": 0,
             "LMAX": 99999,
@@ -932,8 +921,8 @@ class SIEClassifProjetos(SIE):
         :return:
         """
 
-        #pior maneira de se fazer isso: deletar o que tem, criar de novo.
-        self.removerClassifProjetosDeProjeto(id_projeto)  #TRY???
+        # pior maneira de se fazer isso: deletar o que tem, criar de novo.
+        self.removerClassifProjetosDeProjeto(id_projeto)  # TRY???
 
         todas_classificacoes = []
         todas_classificacoes.extend(classificacoes) if type(classificacoes) == list else todas_classificacoes.append(classificacoes)
@@ -957,7 +946,6 @@ class SIEClassifProjetos(SIE):
             return res.content if res is not None else []
         except (AttributeError, ValueError):
             return []
-
 
     def get_classificacoes_cnpq(self,id_projeto):
 
@@ -1002,6 +990,7 @@ class SIEClassifProjetos(SIE):
         if comite_etica:
             return comite_etica[0][u"ID_CLASSIFICACAO"]
         return None
+
 
 class SIEOrgaosProjetos(SIE):
     def __init__(self):

@@ -1,4 +1,5 @@
 # coding=utf-8
+
 from datetime import date, timedelta
 from time import strftime
 from gluon import current

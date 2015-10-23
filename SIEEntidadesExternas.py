@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from sie import SIE
-from unirio.api.result import APIException
 from sie.SIETabEstruturada import SIETabEstruturada
 from datetime import date
+
 
 class SIEEntidadesExternas(SIE):
 
@@ -19,17 +19,12 @@ class SIEEntidadesExternas(SIE):
         :return: APIPost
         """
 
-        try:
-            params.update({
-                "TIPO_ENTIDADE_TAB": self.COD_TABELA_TIPO_ENTIDADE,
-                "UF_TAB": SIETabEstruturada().COD_TABELA_ESTADOS,
-                "DT_CADASTRO": date.today()
-            })
-            entidade = self.api.post(self.path, params)
-
-        except APIException:
-            entidade = None
-        return entidade
+        params.update({
+            "TIPO_ENTIDADE_TAB": self.COD_TABELA_TIPO_ENTIDADE,
+            "UF_TAB": SIETabEstruturada().COD_TABELA_ESTADOS,
+            "DT_CADASTRO": date.today()
+        })
+        return self.api.post(self.path, params)
 
 
     def get_tipos_entidade(self):
