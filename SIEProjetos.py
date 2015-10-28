@@ -10,7 +10,7 @@ from gluon import current
 
 from sie import SIE
 from sie.SIEBolsistas import SIEBolsas, SIEBolsistas
-from sie.SIEDocumento import SIEDocumentoDAO, SIETramitacoes, SIEFluxos
+from sie.SIEDocumento import SIEDocumentoDAO, SIETramitacaoDAO, SIEFluxos
 from sie.SIEFuncionarios import SIEFuncionarios
 from sie.SIETabEstruturada import SIETabEstruturada
 
@@ -271,7 +271,7 @@ class SIEProjetos(SIE):
         SIEClassifProjetos().removerClassifProjetosDeProjeto(projeto['ID_PROJETO'])
 
         try:
-            documento = SIEDocumentoDAO().get_documento(projeto['ID_DOCUMENTO'])
+            documento = SIEDocumentoDAO().obter_documento(projeto['ID_DOCUMENTO'])
             SIEDocumentoDAO().remover_documento(documento)
         except ValueError:
             print "Documento %d não encontrado" % projeto['ID_DOCUMENTO']
@@ -300,7 +300,7 @@ class SIEProjetos(SIE):
         :param funcionario: Um dicionário referente a uma entrada na view V_FUNCIONARIO_IDS
         """
         projeto = self.getProjeto(ID_PROJETO)
-        documento = SIEDocumentoDAO().get_documento(projeto['ID_DOCUMENTO'])
+        documento = SIEDocumentoDAO().obter_documento(projeto['ID_DOCUMENTO'])
 
         if avaliacao == 9:
             # fluxo = SIEFluxos().get_proximos_fluxos_do_documento(documento)
@@ -310,7 +310,7 @@ class SIEProjetos(SIE):
         else:
             raise ValueError("%d não é um tipo de avaliação reconhecido" % avaliacao)
 
-        tramitacao = SIETramitacoes(documento)
+        tramitacao = SIETramitacaoDAO(documento)
         novaTramitacao = tramitacao.criar_tramitacao()
         tramitacao.tramitar_documento(
             novaTramitacao,
