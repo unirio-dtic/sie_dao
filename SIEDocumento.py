@@ -116,7 +116,7 @@ class SIEDocumentoDAO(SIE):
             "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
             "SITUACAO_ATUAL": fluxo["SITUACAO_FUTURA"]
         }
-        self.api.put(self, novo_documento)
+        self.api.put(self.path, novo_documento)
 
     def obter_documento(self, id_documento):
         """
@@ -255,7 +255,7 @@ class SIEDocumentoDAO(SIE):
             "LMIN": 0,
             "LMAX": 99999999
         }
-        return self.api.get(self.path, params)
+        return self.api.get(self.fluxo_path, params)
 
     def obter_fluxo_tramitacao_atual(self, documento):  # TODO verificar se isto é util
         """
@@ -274,7 +274,7 @@ class SIEDocumentoDAO(SIE):
             "LMIN": 0,  # sera necessario?
             "LMAX": 1   # sera necessario?
         }
-        return self.api.get(self.path, params).first()
+        return self.api.get(self.fluxo_path, params).first()
 
     def obter_tramitacao_atual(self, documento):
         """
@@ -286,7 +286,7 @@ class SIEDocumentoDAO(SIE):
         """
         try:
             # Pega a tramitacao atual
-            tramitacao = self.api.get(self.tramite_path, {"ID_DOCUMENTO": documento['ID_DOCUMENTO'],"ORDERBY": "ID_TRAMITACAO", "SORT": "DESC"}).first()
+            tramitacao = self.api.get(self.tramite_path, {"ID_DOCUMENTO": documento['ID_DOCUMENTO'],"ORDERBY": "ID_TRAMITACAO DESC"}).first()
         except APIException as e:
             current.session.flash = "Não foi possível atualizar tramitação"
             raise e
