@@ -21,6 +21,8 @@ class SIEProjetosPesquisa(SIEProjetos):
     COD_TABELA_AVALIACAO_PROJETOS_INSTITUICAO = 6010  # => Avaliação dos projetos da Instituição
     COD_TABELA_SITUACAO = 6011
 
+
+    ITEM_TITULACAO_SUPERIOR_INCOMPLETO = 9
     ITEM_FUNDACOES_NAO_SE_APLICA = 1  # => Não se aplica
     ITEM_TIPO_EVENTO_NAO_SE_APLICA = 1  # => Não se aplica
     ITEM_TIPO_PUBLICO_3_GRAU = 8  # => 3o grau
@@ -60,10 +62,11 @@ class SIEProjetosPesquisa(SIEProjetos):
             'ORDERBY': 'ID_ORGAO_PROJETO ASC'
         }
 
-        try:
-            return self.api.get("V_PROJETOS_ORGAOS", params, cache_time=0).first()
-        except NoContentException:
-            return {}
+        agencias = self.api.get("V_PROJETOS_ORGAOS", params, cache_time=0)
+        if agencias:
+            return agencias.first()
+        else:
+            return None
 
     def get_projeto_as_row(self, id_projeto):
         """
@@ -94,15 +97,15 @@ class SIEProjetosPesquisa(SIEProjetos):
                     "carga_horaria": projeto_bd[u'CARGA_HORARIA'],
                     "financeiro_termo_outorga": termo,  # TODO
                     "financeiro_valor_previsto": agencia_fomento["VL_CONTRIBUICAO"] if agencia_fomento else "",
-                    "financeiro_agencia_fomento": agencia_fomento["NOME"].encode(
+                    "financeiro_agencia_fomento": agencia_fomento["NOME_UNIDADE"].encode(
                         'utf-8').strip() if agencia_fomento else "",
                     "financeiro_id_orgao_projeto": agencia_fomento["ID_ORGAO_PROJETO"] if agencia_fomento else "",
                     "financeiro_id_origem": agencia_fomento["ID_ORIGEM"] if agencia_fomento else "",
                     "financeiro_origem": agencia_fomento["ORIGEM"] if agencia_fomento else "",
                     "ata_departamento": ata,  # TODO
                     "arquivo_projeto": arquivo_proj,  # TODO
-                    'vigencia_inicio': datetime.strptime(projeto_bd[u'DT_INICIAL'], '%Y-%m-%d').date(),
-                    'vigencia_final': datetime.strptime(projeto_bd[u'DT_CONCLUSAO'], '%Y-%m-%d').date(),
+                    'vigencia_inicio': datetime.strptime(projeto_bd[u'DT_INICIAL'], '%Y-%m-%d').date() if projeto_bd[u'DT_INICIAL'] else None,
+                    'vigencia_final': datetime.strptime(projeto_bd[u'DT_CONCLUSAO'], '%Y-%m-%d').date() if projeto_bd[u'DT_CONCLUSAO'] else None,
                     'id': projeto_bd[u"ID_PROJETO"]
                 }
                 projeto = Row(**projeto)
@@ -289,8 +292,6 @@ class SIEProjetosPesquisa(SIEProjetos):
         params = {
             "LMIN": 0,
             "LMAX": 9999,
-            'ID_CLASSIFICACAO': self.ITEM_CLASSIFICACAO_PROJETO_PESQUISA,
-
         }
 
         if cpf_coordenador:
@@ -341,12 +342,12 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
             orgao_bd = self.get_orgao(id_orgao_projeto)
             if orgao_bd:
                 orgao_dict = {
-                    'nome': orgao_bd[u'NOME'].encode('utf-8'),
+                    'nome': orgao_bd[u'NOME_UNIDADE'].encode('utf-8'),
                     'descricao_origem': "UNIRIO" if orgao_bd[u"ORIGEM"] == "ID_UNIDADE" else "Externo",
                     'funcao_orgao': orgao_bd[u"FUNCAO_ORG_ITEM"],
                     "valor": orgao_bd[u'VL_CONTRIBUICAO'],
-                    'participacao_inicio': datetime.strptime(orgao_bd[u'DT_INICIAL'], '%Y-%m-%d').date(),
-                    'participacao_fim': datetime.strptime(orgao_bd[u'DT_FINAL'], '%Y-%m-%d').date(),
+                    'participacao_inicio': datetime.strptime(orgao_bd[u'DT_INICIAL'], '%Y-%m-%d').date() if orgao_bd[u'DT_INICIAL'] else None,
+                    'participacao_fim': datetime.strptime(orgao_bd[u'DT_FINAL'], '%Y-%m-%d').date() if orgao_bd[u'DT_FINAL'] else None,
                     'observacao': orgao_bd[u'OBS_ORG_PROJETO'].encode('utf-8'),
                     'id': orgao_bd[u"ID_ORGAO_PROJETO"]
                 }
@@ -503,9 +504,9 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
                 participante_to_row['descr_mail'] = participante_to_row['descr_mail'].strip()
                 participante_to_row['funcao_projeto'] = participante_to_row['funcao_item']
                 participante_to_row['dt_final'] = datetime.strptime(participante_to_row['dt_final'].strip(),
-                                                                    '%Y-%m-%d').date()
+                                                                    '%Y-%m-%d').date() if participante_to_row['dt_final'] else None
                 participante_to_row['dt_inicial'] = datetime.strptime(participante_to_row['dt_inicial'].strip(),
-                                                                      '%Y-%m-%d').date()
+                                                                      '%Y-%m-%d').date() if participante_to_row['dt_inicial'] else None
                 participante_row = Row(**participante_to_row)
             else:
                 participante_row = None
@@ -528,6 +529,26 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
             return res.content[0] if res is not None else None
         except NoContentException:
             return None
+
+
+    def get_participante_candidato_bolsista(self, id_projeto, id_pessoa):
+        """
+        Retorna dicionário com o participante de id_projeto e id_pessoa.
+        :return: dict com informações dos participantes, None caso contrário.
+        """
+        params = {"LMIN": 0,
+                  "LMAX": 1,
+                  "ID_PROJETO": id_projeto,
+                  "ID_PESSOA": id_pessoa,
+                  "SITUACAO": self.COD_SITUACAO_ATIVO,
+                  "FUNCAO_ITEM": SIEProjetosPesquisa.ITEM_FUNCOES_PROJ_CANDIDATO_BOLSISTA
+                  }
+        try:
+            res = self.api.get("PARTICIPANTES_PROJ", params,  cache_time=0)
+            return res.content[0] if res is not None else None
+        except ValueError:
+            return None
+
 
     def from_form(self, form):
         """

@@ -321,10 +321,13 @@ class SIEProjetos(SIE):
 
 class SIEArquivosProj(SIE):
 
+    COD_TABELA_TIPO_ARQUIVO = 6005
     ITEM_TIPO_ARQUIVO_TERMO_OUTORGA = 19
     ITEM_TIPO_ARQUIVO_PROJETO = 1
     ITEM_TIPO_ARQUIVO_ATA_DEPARTAMENTO = 5
     ITEM_TIPO_ARQUIVO_PARECER_CEUA = 18
+    ITEM_TIPO_ARQUIVO_PLANO_DE_ESTUDOS = 15
+    ITEM_TIPO_ARQUIVO_RELATORIO_DOCENTE = 14
 
     def __init__(self):
         super(SIEArquivosProj, self).__init__()
@@ -407,7 +410,7 @@ class SIEArquivosProj(SIE):
         arquivo_proj = {
             "ID_PROJETO": id_projeto,
             "DT_INCLUSAO": date.today(),
-            "TIPO_ARQUIVO_TAB": 6005,
+            "TIPO_ARQUIVO_TAB": self.COD_TABELA_TIPO_ARQUIVO,
             "TIPO_ARQUIVO_ITEM": tipo_arquivo,
             "NOME_ARQUIVO": nome_arquivo,
             "CONTEUDO_ARQUIVO": SIE.handle_blob(arquivo)
