@@ -10,8 +10,6 @@ from unirio.api.exceptions import APIException
 
 __all__ = [
     "SIEDocumentoDAO",
-    "SIETramitacaoDAO",
-    "SIEFluxos"
 ]
 
 
@@ -194,7 +192,7 @@ class SIEDocumentoDAO(SIE):
 
         try:
             # Pega a tramitacao atual
-            tramitacao = self.__obter_tramitacao_atual(documento)
+            tramitacao = self.obter_tramitacao_atual(documento)
         except APIException as e:
             current.session.flash = "Não foi possível atualizar tramitação"
             raise e
@@ -270,7 +268,7 @@ class SIEDocumentoDAO(SIE):
 
         # obter da tabela de tramitacoes pois o fluxo pode ter sido modificado ao longo do tempo
         # isso é de contraste com obter da tabela de fluxos para termos as opcoes de fluxo mais atualizadas
-        tramitacao_atual = self.__obter_tramitacao_atual(documento)
+        tramitacao_atual = self.obter_tramitacao_atual(documento)
         params = {
             "ID_FLUXO": tramitacao_atual["ID_FLUXO"],
             "LMIN": 0,  # sera necessario?
@@ -278,7 +276,7 @@ class SIEDocumentoDAO(SIE):
         }
         return self.api.get(self.path, params).first()
 
-    def __obter_tramitacao_atual(self, documento):
+    def obter_tramitacao_atual(self, documento):
         """
         Retorna a tramitacao atual (mais recente) do documento.
         :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
