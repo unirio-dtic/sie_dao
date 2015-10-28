@@ -10,7 +10,7 @@ from gluon import current
 
 from sie import SIE
 from sie.SIEBolsistas import SIEBolsas, SIEBolsistas
-from sie.SIEDocumento import SIEDocumentoDAO, SIETramitacaoDAO, SIEFluxos
+from sie.SIEDocumento import SIEDocumentoDAO
 from sie.SIEFuncionarios import SIEFuncionarios
 from sie.SIETabEstruturada import SIETabEstruturada
 
@@ -286,37 +286,6 @@ class SIEProjetos(SIE):
         :return: Lista de dicionários contendo as chaves `ITEM_TABELA` e `DESCRICAO`
         """
         return SIETabEstruturada().itemsDeCodigo(6011)
-
-    def tramitarDocumentoProjeto(self, ID_PROJETO, avaliacao, funcionario):
-        """
-        avaliacao = 9           => indeferido (Indeferido)
-        avaliacao = 2           => deferido (Em andamento)
-
-        :type ID_PROJETO: int
-        :param ID_PROJETO: Identificador único de um PROJETO
-        :type avaliacao: int
-        :param avaliacao: Um inteiro correspondente a uma avaliação
-        :type funcionario: dict
-        :param funcionario: Um dicionário referente a uma entrada na view V_FUNCIONARIO_IDS
-        """
-        projeto = self.getProjeto(ID_PROJETO)
-        documento = SIEDocumentoDAO().obter_documento(projeto['ID_DOCUMENTO'])
-
-        if avaliacao == 9:
-            # fluxo = SIEFluxos().get_proximos_fluxos_do_documento(documento)
-            fluxo = NotImplementedError
-        elif avaliacao == 2:
-            fluxo = NotImplementedError
-        else:
-            raise ValueError("%d não é um tipo de avaliação reconhecido" % avaliacao)
-
-        tramitacao = SIETramitacaoDAO(documento)
-        novaTramitacao = tramitacao.criar_tramitacao()
-        tramitacao.tramitar_documento(
-            novaTramitacao,
-            funcionario,
-            fluxo
-        )
 
 
 class SIEArquivosProj(SIE):

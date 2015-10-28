@@ -205,7 +205,7 @@ class SIEDocumentoDAO(SIE):
                 "DT_ENVIO": date.today(),
                 "DT_VALIDADE": self.__calcular_data_validade(date.today(), fluxo["NUM_DIAS"]),
                 "DESPACHO": fluxo["TEXTO_DESPACHO"],
-                "SITUACAO_TRAMIT": "E",
+                "SITUACAO_TRAMIT": "E", # TODO Certo seria só virar E quando alguém abrisse tal documento/projeto?
                 "IND_RETORNO_OBRIG": "F",
                 "ID_FLUXO": fluxo["ID_FLUXO"],
                 "ID_USUARIO_INFO": funcionario["ID_USUARIO"],
@@ -286,7 +286,7 @@ class SIEDocumentoDAO(SIE):
         """
         try:
             # Pega a tramitacao atual
-            tramitacao = self.api.get(self.tramite_path, {"ORDERBY": "ID_TRAMITACAO", "SORT": "DESC"}).first()
+            tramitacao = self.api.get(self.tramite_path, {"ID_DOCUMENTO": documento['ID_DOCUMENTO'],"ORDERBY": "ID_TRAMITACAO", "SORT": "DESC"}).first()
         except APIException as e:
             current.session.flash = "Não foi possível atualizar tramitação"
             raise e
@@ -331,21 +331,21 @@ class _NumProcessoHandler(object):
             mascara = self.__obter_mascara()
 
             if mascara == "pNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                self.__gera_numero_processo_projeto("p")
+                numero = self.__gera_numero_processo_projeto("p")
 
             elif mascara == "eNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                self.__gera_numero_processo_projeto("e")
+                numero = self.__gera_numero_processo_projeto("e")
 
             elif mascara == "xNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                self.__gera_numero_processo_projeto("x")
+                numero = self.__gera_numero_processo_projeto("x")
 
             elif mascara == "dNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                self.__gera_numero_processo_projeto("d")
+                numero = self.__gera_numero_processo_projeto("d")
 
             else:  # interpretar a mascara
                 # TODO Criar parser para mascara para entender como gerar o numero do processo de modo generico
                 return NotImplementedError
-
+            return numero
         except Exception as e:
             current.session.flash = "Erro ao gerar numero de processo."
             raise e
@@ -368,7 +368,7 @@ class _NumProcessoHandler(object):
             raise e
 
     def __obter_mascara(self):
-        return self.api.get("TIPOS_DOCUMENTOS", {"ID_TIPO_DOC": self.id_tipo_doc}, ["MASCARA_TIPO_DOC"]).first()["MASCARA_TIPO_DOC"]
+        return self.api.get("TIPOS_DOCUMENTOS", {"ID_TIPO_DOC": self.id_tipo_doc}, ["MASCARA_TIPO_DOC"]).first()["MASCARA_TIPO_DOC"].strip() # strip é necessário pois máscara vem com whitespaces no final(pq???).
 
     def __proximo_numero_tipo_documento(self):
         """
@@ -418,7 +418,6 @@ class _NumProcessoHandler(object):
         :param numero: valor a ser assinalado
         """
 
-        # TODO checar se precisa do ano também como parametro aqui
         self.api.put(
             self.path,
             {
@@ -449,4 +448,5 @@ class _NumProcessoHandler(object):
         """ Codigo especifico para gerar numero de processo de projetos
             OBS: esse metodo é temporario. Deve-se usar o parser generico. """
         num_ultimo_doc = str(self.__proximo_numero_tipo_documento()).zfill(4)  # NNNN
-        return tipo + ("%s/%d" % (num_ultimo_doc, self.ano))  # _NNNN/AAAA
+        num_processo =  tipo + ("%s/%d" % (num_ultimo_doc, self.ano))  # _NNNN/AAAA
+        return num_processo

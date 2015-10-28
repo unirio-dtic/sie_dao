@@ -2,6 +2,7 @@
 from unirio.api.exceptions import APIException, NoContentException
 from sie.SIETabEstruturada import SIETabEstruturada
 from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj, SIEOrgaosProjetos
+from sie.SIEDocumento import SIEDocumentoDAO
 from sie.sie_utils import campos_sie_lower
 from pydal.objects import Row
 from datetime import date, datetime
@@ -40,13 +41,16 @@ class SIEProjetosPesquisa(SIEProjetos):
     ITEM_FUNCOES_ORGAOS_AGENCIA_FOMENTO = 4
     ITEM_ESTADO_REGULAR = 1
 
+    TIPO_DOCUMENTO = 217
+
     SITUACAO_ATIVO = 'A'
     ACESSO_PARTICIPANTES_APENAS_COORDENADOR = 'N'
     NAO_PAGA_BOLSA = 'N'
 
+
+
     def __init__(self):
         super(SIEProjetosPesquisa, self).__init__()
-        self.TIPO_DOCUMENTO = 217
 
     def get_agencia_fomento(self, id_projeto):
         """
@@ -62,11 +66,33 @@ class SIEProjetosPesquisa(SIEProjetos):
             'ORDERBY': 'ID_ORGAO_PROJETO ASC'
         }
 
-        agencias = self.api.get("V_PROJETOS_ORGAOS", params, cache_time=0)
-        if agencias:
+        try:
+            agencias = self.api.get("V_PROJETOS_ORGAOS", params, cache_time=0)
             return agencias.first()
-        else:
+        except (NoContentException,ValueError):
             return None
+
+    def registrar_projeto(self,id_projeto,funcionario):
+        """
+        Cria o documento e tramita para DPQ. Muda status do projeto tb.
+        :param id_projeto:
+        :return:
+        """
+
+        documento = SIEDocumentoDAO().criar_documento(self.TIPO_DOCUMENTO,funcionario)
+
+        projeto = {
+            "ID_PROJETO":id_projeto,
+            "ID_DOCUMENTO": documento['ID_DOCUMENTO'],
+            "NUM_PROCESSO": documento['NUM_PROCESSO']
+        }
+
+        sucesso_atualizar_projeto = self.atualizar_projeto(projeto)
+        if sucesso_atualizar_projeto:
+            return True
+        else:
+            return False
+
 
     def get_projeto_as_row(self, id_projeto):
         """
@@ -184,13 +210,11 @@ class SIEProjetosPesquisa(SIEProjetos):
         return projeto
 
     def atualizar_projeto(self, projeto):
-        try:
-            retorno = self.api.put(self.path, projeto)
-            if retorno and int(retorno.affectedRows) == 1:
-                return True
-            return False
-        except APIException:
-            return False
+        retorno = self.api.put(self.path, projeto)
+        if retorno and retorno.affectedRows == 1:
+            return True
+        return False
+
 
     def get_lista_opcoes_titulacao(self):
         """
