@@ -72,6 +72,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         except (NoContentException,ValueError):
             return None
 
+
     def registrar_projeto(self,id_projeto,funcionario):
         """
         Cria o documento e tramita para DPQ. Muda status do projeto tb.
@@ -82,7 +83,9 @@ class SIEProjetosPesquisa(SIEProjetos):
         documento_projeto = self.documento_inicial_padrao(funcionario)
         documento = SIEDocumentoDAO().criar_documento(documento_projeto)
 
-        SIEDocumentoDAO().primeira_tramitacao(documento, funcionario, resolvedor_destino=lambda fluxo: self.resolve_destino_tramitacao(fluxo,id_projeto)) # TODO Seria esse o melhor lugar?
+        resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo,id_projeto)
+
+        SIEDocumentoDAO().primeira_tramitacao(documento, funcionario, resolvedor_destino) # TODO Seria esse o melhor lugar?
 
         projeto = {
             "ID_PROJETO":id_projeto,

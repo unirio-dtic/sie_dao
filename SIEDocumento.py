@@ -87,6 +87,7 @@ class SIEDocumentoDAO(SIE):
         Com a tramitação criada por uma etapa de criar documento, ela é alterada com algumas informações para entrega.
         :param documento:
         :param funcionario:
+        :param resolvedor_destino é um callable que resolve o destino dado um fluxo
         :return:
         """
 
