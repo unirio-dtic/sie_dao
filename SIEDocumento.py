@@ -13,6 +13,7 @@ __all__ = [
 ]
 
 
+
 class SIEDocumentoDAO(SIE):
     # ID_TIPO_DOC = 215  # sou uma gambi esquecida
 
@@ -27,7 +28,7 @@ class SIEDocumentoDAO(SIE):
     def __init__(self):
         super(SIEDocumentoDAO, self).__init__()
 
-    def criar_documento(self, id_tipo_doc, funcionario, sem_tramite=False):
+    def criar_documento(self, novo_documento_params):
         """
         Inclui um novo documento eletronico do SIE e retorna ele. Uma tramitação inicial já é iniciada (exceto se for especificado sem_tramite=True).
 
@@ -55,61 +56,33 @@ class SIEDocumentoDAO(SIE):
         :return: Um dicionário contendo a entrada da tabela DOCUMENTOS correspondente ao documento criado.
         """
 
+        #2
+
         # num_processo_handler = self._NumProcessoHandler(self, id_tipo_doc, current.session.edicao.dt_inicial_projeto.year)
-        num_processo_handler = _NumProcessoHandler(self.api, id_tipo_doc)
+        num_processo_handler = _NumProcessoHandler(self.api, novo_documento_params["ID_TIPO_DOC"])
 
         # determinando ultimo numero
         num_processo = num_processo_handler.gerar_numero_processo()
 
-        novo_documento_params = {
-            "ID_TIPO_DOC": id_tipo_doc,
-            "ID_PROCEDENCIA": funcionario["ID_CONTRATO_RH"],
-            "ID_PROPRIETARIO": funcionario["ID_USUARIO"],
-            "ID_CRIADOR": funcionario["ID_USUARIO"],
-            "NUM_PROCESSO": num_processo,
-            "TIPO_PROCEDENCIA": "S",
-            "TIPO_INTERESSADO": "S",
-            "ID_INTERESSADO": funcionario["ID_CONTRATO_RH"],
-            "SITUACAO_ATUAL": 1,
-            "TIPO_PROPRIETARIO": 20,
-            # "TIPO_ORIGEM": 20,  # atualizacao do sie Out/2015
-            "DT_CRIACAO": date.today(),
-            "IND_ELIMINADO": "N",
-            "IND_AGENDAMENTO": "N",
-            "IND_RESERVADO": "N",
-            "IND_EXTRAVIADO": "N",
-            "TEMPO_ESTIMADO": 1,
-            # "SEQUENCIA": 1  # atualizacao do sie Out/2015
-        }
+        novo_documento_params.update({
+            "NUM_PROCESSO":num_processo
+        })
+
 
         try:
             id_documento = self.api.post(self.path, novo_documento_params).insertId
             novo_documento = self.api.get(self.path, {"ID_DOCUMENTO": id_documento}).first()
+            # criando entrada na tabela de tramitacões (pre-etapa)
+            self.criar_tramitacao(novo_documento)
         except APIException as e:
             # TODO decrementar proximo_numero_tipo_documento
             num_processo_handler.reverter_ultimo_numero_processo()
             raise e
 
-        # se nao for para tramitar, paramos por aqui
-        if sem_tramite:
-            return novo_documento
+        return novo_documento
 
-        try:
-            # criando entrada na tabela de tramitacões (pre-etapa)
-            self.criar_tramitacao(novo_documento)
 
-            # primeira tramitação o documento criando
-            self.tramitar_documento(
-                novo_documento,
-                funcionario,
-                self.obter_fluxo_tramitacao_atual(novo_documento)
-            )
-            return novo_documento
 
-        except Exception as e:
-            # TODO deletaNovoDocumento
-            self.remover_documento(novo_documento)
-            raise e
 
     def atualizar_situacao_documento(self, documento, fluxo):
         novo_documento = {
