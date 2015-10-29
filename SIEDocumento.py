@@ -94,7 +94,7 @@ class SIEDocumentoDAO(SIE):
         try:
             # primeira tramitação o documento criando
 
-            fluxo = self.obter_fluxo_tramitacao_atual(documento)
+            fluxo = self.obter_fluxo_inicial(documento)
 
             if fluxo['IND_QUERY'].strip() == 'S':
                 # Se ind_query é S, temos que alterar o tipo_destino e o id_destino do fluxo (não é o destino do fluxo cadastrado.
@@ -256,6 +256,26 @@ class SIEDocumentoDAO(SIE):
         }
         return self.api.get(self.fluxo_path, params)
 
+    def obter_fluxo_inicial(self,documento):
+        """
+        Retorna o fluxo de acordo com a query para pegar o fluxo inicial de um projeto:
+
+        “SELECT F.* FROM FLUXOS F WHERE F.SITUACAO_ATUAL = 1 AND F.IND_ATIVO = ‘S’ AND F.ID_TIPO_DOC =
+        :ID_TIPO_DOC”
+
+        :param documento:
+        :return:
+        """
+        params = {
+            "ID_TIPO_DOC": documento["ID_TIPO_DOC"],
+            "SITUACAO_ATUAL": documento["SITUACAO_ATUAL"], # TODO Hardcodar 1?
+            "IND_ATIVO": "S",
+            "LMIN": 0,
+            "LMAX": 1
+        }
+        return self.api.get(self.fluxo_path, params).first()
+
+
     def obter_fluxo_tramitacao_atual(self, documento):  # TODO verificar se isto é util
         """
         Retorna o fluxo de tramitacao atual do documento especificado
@@ -330,7 +350,7 @@ class _NumProcessoHandler(object):
             mascara = self.__obter_mascara()
 
             if mascara == "pNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                numero = self.__gera_numero_processo_projeto("p")
+                numero = self.__gera_numero_processo_projeto("P")
 
             elif mascara == "eNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
                 numero = self.__gera_numero_processo_projeto("e")
