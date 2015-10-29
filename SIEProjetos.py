@@ -36,6 +36,9 @@ __all__ = [
 
 
 class SIEProjetos(SIE):
+
+    TIPO_DOCUMENTO = -1
+
     def __init__(self):
         super(SIEProjetos, self).__init__()
         self.path = "PROJETOS"
