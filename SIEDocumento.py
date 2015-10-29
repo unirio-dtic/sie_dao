@@ -81,7 +81,32 @@ class SIEDocumentoDAO(SIE):
 
         return novo_documento
 
+    def primeira_tramitacao(self, documento, funcionario, resolvedor_destino):
+        """
+        Corresponde às etapas de n.3 do documento enviado pela Síntese sobre a 1a tramitação de um projeto.
+        Com a tramitação criada por uma etapa de criar documento, ela é alterada com algumas informações para entrega.
+        :param documento:
+        :param funcionario:
+        :return:
+        """
 
+        try:
+            # primeira tramitação o documento criando
+
+            fluxo = self.obter_fluxo_tramitacao_atual(documento)
+
+            if fluxo['IND_QUERY'].strip() == 'S':
+                # Se ind_query é S, temos que alterar o tipo_destino e o id_destino do fluxo (não é o destino do fluxo cadastrado.
+                # No caso de projetos, id_destino é o orgão responsável pelo projeto
+                (tipo_destino, id_destino) = resolvedor_destino(fluxo)
+                fluxo.update({'TIPO_DESTINO':tipo_destino,'ID_DESTINO':id_destino})
+
+            self.tramitar_documento(documento,funcionario,fluxo)
+
+        except Exception as e:
+            # TODO deletaNovoDocumento
+            self.remover_documento(documento)
+            raise e
 
 
     def atualizar_situacao_documento(self, documento, fluxo):

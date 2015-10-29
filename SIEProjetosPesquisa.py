@@ -82,7 +82,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         documento_projeto = self.documento_inicial_padrao(funcionario)
         documento = SIEDocumentoDAO().criar_documento(documento_projeto)
 
-        self.primeira_tramitacao_projeto(documento, funcionario, id_projeto) # TODO Seria esse o melhor lugar?
+        SIEDocumentoDAO().primeira_tramitacao(documento, funcionario, resolvedor_destino=lambda fluxo: self.resolve_destino_tramitacao(fluxo,id_projeto)) # TODO Seria esse o melhor lugar?
 
         projeto = {
             "ID_PROJETO":id_projeto,
@@ -96,46 +96,18 @@ class SIEProjetosPesquisa(SIEProjetos):
         else:
             return False
 
-    def primeira_tramitacao_projeto(self, documento, funcionario, id_projeto):
+
+    def resolve_destino_tramitacao(self,fluxo, id_projeto):
         """
-        Corresponde às etapas de n.3 do documento enviado pela Síntese sobre a 1a tramitação de um projeto.
-        :param documento:
-        :param funcionario:
-        :param id_projeto:
-        :return:
+        Resolve o destino do fluxo. No caso de projetos, faz uma query específica no banco.
+        Ideal seria que este método fosse uma espécie de delegate, com parâmetros variáveis. pq todo o método primeira tramitacao iria para dentro de um DAO de documento.
         """
-
-        def _resolve_destino(fluxo, id_projeto):
-            """
-            Resolve o destino do fluxo. No caso de projetos, faz uma query específica no banco.
-            Ideal seria que este método fosse uma espécie de delegate, com parâmetros variáveis. pq todo o método primeira tramitacao iria para dentro de um DAO de documento.
-            """
-            params = {
-                "FUNCAO_ORG_ITEM": SIEProjetosPesquisa.ITEM_FUNCOES_ORGAOS_RESPONSAVEL,  # TODO ??? Não seria a câmara??
-                "ID_PROJETO": id_projeto
-            }
-            id_destino = self.api.get("ORGAOS_PROJETOS", params).first()
-            return (fluxo['TIPO_DESTINO'],id_destino)
-
-        try:
-            # primeira tramitação o documento criando
-
-            fluxo = SIEDocumentoDAO().obter_fluxo_tramitacao_atual(documento)
-
-            if fluxo['IND_QUERY'].strip() == 'S':
-                # Se ind_query é S, temos que alterar o tipo_destino e o id_destino do fluxo (não é o destino do fluxo cadastrado.
-                # No caso de projetos, id_destino é o orgão responsável pelo projeto
-                (tipo_destino, id_destino) = _resolve_destino(fluxo, id_projeto)
-                fluxo.update({'TIPO_DESTINO':tipo_destino,'ID_DESTINO':id_destino})
-
-            SIEDocumentoDAO().tramitar_documento(documento,funcionario,fluxo)
-
-        except Exception as e:
-            # TODO deletaNovoDocumento
-            SIEDocumentoDAO().remover_documento(documento)
-            raise e
-
-
+        params = {
+            "FUNCAO_ORG_ITEM": SIEProjetosPesquisa.ITEM_FUNCOES_ORGAOS_RESPONSAVEL,  # TODO ??? Não seria a câmara??
+            "ID_PROJETO": id_projeto
+        }
+        id_destino = self.api.get("ORGAOS_PROJETOS", params).first()
+        return (fluxo['TIPO_DESTINO'],id_destino)
 
     def get_projeto_as_row(self, id_projeto):
         """
