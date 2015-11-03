@@ -42,14 +42,8 @@ class SIEDocumentoDAO(SIE):
         IND_ELIMINADO, IND_AGENDAMENTO, IND_RESERVADO,
         IND_EXTRAVIADO, TEMPO_ESTIMADO => Valores fixos (Seguimos documento com recomendações da síntese)
 
-        :param id_tipo_doc: O id do tipo de documento. (Informação na tabela TIPOS_DOCUMENTOS)
-        :type  id_tipo_doc: int
-
-        :param funcionario: Um dicionário referente a uma entrada na view V_FUNCIONARIO_IDS
-        :type  funcionario: dict
-
-        :param sem_tramite: Flag para indicar se é para ignorar a criação de um tramite inicial.
-        :type  sem_tramite: bool
+        :param novo_documento_params: Um dicionario contendo parametros para criar o documento.
+        :type  novo_documento_params: dict
 
         :rtype : dict
         :return: Um dicionário contendo a entrada da tabela DOCUMENTOS correspondente ao documento criado.
@@ -63,15 +57,13 @@ class SIEDocumentoDAO(SIE):
         # determinando ultimo numero
         num_processo = num_processo_handler.gerar_numero_processo()
 
-        novo_documento_params.update({
-            "NUM_PROCESSO":num_processo
-        })
+        novo_documento_params.update({"NUM_PROCESSO": num_processo})
 
         try:
             id_documento = self.api.post(self.path, novo_documento_params).insertId
             novo_documento = self.api.get(self.path, {"ID_DOCUMENTO": id_documento}).first()
             # criando entrada na tabela de tramitacões (pre-etapa)
-            self.criar_tramitacao(novo_documento)
+            self.__adiciona_registro_inicial_tramitacao(novo_documento)
         except APIException as e:
             # TODO decrementar proximo_numero_tipo_documento
             num_processo_handler.reverter_ultimo_numero_processo()
@@ -115,8 +107,13 @@ class SIEDocumentoDAO(SIE):
 
     # ========================= Tramitacao ===================================
 
-    def criar_tramitacao(self, documento):
+    # TODO checar com o alex se esse registro inicial é padrão ou varia de acordo com o tipo de documento
+    def __adiciona_registro_inicial_tramitacao(self, documento):
         """
+        Cria um registro na tabela de tramitações para esse documento.
+
+        Deve ser feito antes de fazer a primeira tramitacao do documento (de preferencia ao criar o documento)
+
         SEQUENCIA = 1           => Primeiro passo da tramitação
         PRIORIDADE_TAB = 5101   => Tabela estruturada utilizada para indicar o nível de prioridade
         PRIORIDADE_ITEM = 2     => Prioridade normal
@@ -146,11 +143,13 @@ class SIEDocumentoDAO(SIE):
 
     def tramitar_documento(self, documento, funcionario, fluxo=None, resolvedor_destino=None):
         """
+        Tramita um documento de acordo com o fluxo especificado.
+
         A regra de negócios diz que uma tramitação muda a situação atual de um documento para uma situação futura
         determinada pelo seu fluxo. Isso faz com que seja necessário que atulizemos as tabelas `TRAMITACOES` e
         `DOCUMENTOS`
 
-        Caso o fluxo não seja especificado (ou None), a chamada corresponde às etapas de n.3 do documento enviado pela consultoria Síntese sobre a "(1a) tramitação de um projeto".
+        Caso o fluxo não seja especificado (ou None), a chamada corresponde às etapas especificadas no documento enviado pela consultoria Síntese a respeito da primeira tramitação de um projeto.
         Nesse caso, com a tramitação criada por uma etapa de criar documento, ela é alterada com algumas informações para entrega.
 
         :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
@@ -159,7 +158,7 @@ class SIEDocumentoDAO(SIE):
         :type funcionario: dict
         :param fluxo: Um dicionário referente a uma entrada na tabela FLUXOS
         :type fluxo: dict
-        :param resolvedor_destino é um callable que resolve o destino dado um fluxo
+        :param resolvedor_destino é um callable que resolve o destino dado um fluxo que tenha a flag IND_QUERY='S', ou seja, o tipo_destino e id_destino devem ser obtidos através de uma query adicional. O retorno deve ser uma tupla (tipo_destino, id_destino).
 
         :rtype : dict
         """
@@ -244,9 +243,10 @@ class SIEDocumentoDAO(SIE):
 
     # ========================= Fluxos ===================================
 
+    # TODO checar com o alex se esse fluxo inicial é padrão ou varia de acordo com o tipo de documento
     def obter_fluxo_inicial(self, documento):
         """
-        Retorna o fluxo de acordo com a query para pegar o fluxo inicial de um projeto:
+        Retorna o fluxo de acordo com a query para pegar o fluxo inicial de uma tramitacao:
 
         “SELECT F.* FROM FLUXOS F WHERE F.SITUACAO_ATUAL = 1 AND F.IND_ATIVO = ‘S’ AND F.ID_TIPO_DOC =
         :ID_TIPO_DOC”
