@@ -2,10 +2,9 @@
 
 from datetime import date, timedelta
 from time import strftime
-from gluon import current
 from deprecate import deprecated
 
-from sie import SIE
+from sie import SIE, SIEException
 from unirio.api.exceptions import APIException
 
 __all__ = [
@@ -49,9 +48,6 @@ class SIEDocumentoDAO(SIE):
         :return: Um dicionário contendo a entrada da tabela DOCUMENTOS correspondente ao documento criado.
         """
 
-        #2
-
-        # num_processo_handler = self._NumProcessoHandler(self, id_tipo_doc, current.session.edicao.dt_inicial_projeto.year)
         num_processo_handler = _NumProcessoHandler(self.api, novo_documento_params["ID_TIPO_DOC"])
 
         # determinando ultimo numero
@@ -170,18 +166,14 @@ class SIEDocumentoDAO(SIE):
             # Pega a tramitacao atual
             tramitacao = self.obter_tramitacao_atual(documento)
         except APIException as e:
-            current.session.flash = "Não foi possível atualizar tramitação"
-            raise e
+            raise SIEException("Não foi possível atualizar tramitação", e)
 
         try:
             # Se IND_QUERY é S, temos que alterar o tipo_destino e o id_destino do fluxo (não é o destino do fluxo cadastrado).
             if fluxo['IND_QUERY'].strip() == 'S':
                 print("Fluxo possui flag IND_QUERY='S'. Usar resolvedor_destino para atualizar o tipo_destino e id_destino")
                 if not resolvedor_destino:
-                    msg = "Tentando tramitar um documento através de um fluxo que possui a flag IND_QUERY='S' sem ter especificado resolvedor_destino! Parar."
-                    current.session.flash = msg
-                    print(msg)
-                    raise RuntimeError
+                    raise SIEException("Tentando tramitar um documento através de um fluxo que possui a flag IND_QUERY='S' sem ter especificado resolvedor_destino! Parar.")
                 (tipo_destino, id_destino) = resolvedor_destino(fluxo)
                 fluxo.update({'TIPO_DESTINO': tipo_destino, 'ID_DESTINO': id_destino})
 
@@ -204,13 +196,10 @@ class SIEDocumentoDAO(SIE):
             try:
                 self.atualizar_situacao_documento(documento, fluxo)
             except APIException as e:
-                current.session.flash = "Não foi possível atualizar o documento"
-                raise e
+                raise SIEException("Não foi possível atualizar o documento", e)
 
         except APIException as e:
-            if not current.session.flash:
-                current.session.flash = "Não foi possível atualizar tramitação"
-            raise e
+            raise SIEException("Não foi possível atualizar tramitação", e)
 
     def obter_tramitacao_atual(self, documento):
         """
@@ -227,10 +216,10 @@ class SIEDocumentoDAO(SIE):
                 "SORT": "DESC"
             }
             # Pega a tramitacao atual
-            tramitacao = self.api.get(self.tramite_path,params ).first()
+            tramitacao = self.api.get(self.tramite_path, params).first()
         except APIException as e:
-            current.session.flash = "Não foi possível atualizar tramitação"
-            raise e
+            raise SIEException("Não foi possível obter tramitação", e)
+
         return tramitacao
 
     def remover_tramitacoes(self, documento):
@@ -262,7 +251,7 @@ class SIEDocumentoDAO(SIE):
         """
         params = {
             "ID_TIPO_DOC": documento["ID_TIPO_DOC"],
-            "SITUACAO_ATUAL": documento["SITUACAO_ATUAL"], # TODO Hardcodar 1?
+            "SITUACAO_ATUAL": documento["SITUACAO_ATUAL"],  # TODO Hardcodar 1?
             "IND_ATIVO": "S",
             "LMIN": 0,
             "LMAX": 1
@@ -323,6 +312,7 @@ class SIEDocumentoDAO(SIE):
         """
         return data + timedelta(days=dias)
 
+
 class _NumProcessoHandler(object):
     """ Classe helper para gerar os numeros de processo de documentos. """
     path = "NUMEROS_TIPO_DOC"
@@ -340,7 +330,10 @@ class _NumProcessoHandler(object):
         :return: Retorna o NUM_PROCESSO gerado a partir da lógica de negócio
         """
         try:
-            mascara = self.__obter_mascara()
+            try:
+                mascara = self.__obter_mascara()
+            except APIException as e:
+                raise SIEException("Erro obter mascara do tipo documento " + str(self.id_tipo_doc), e)
 
             if mascara == "pNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
                 numero = self.__gera_numero_processo_projeto("P")
@@ -359,8 +352,7 @@ class _NumProcessoHandler(object):
                 return NotImplementedError
             return numero
         except Exception as e:
-            current.session.flash = "Erro ao gerar numero de processo."
-            raise e
+            raise SIEException("Erro ao gerar numero de processo.", e)
 
     def reverter_ultimo_numero_processo(self):  # TODO testar isso
         """ Reverte a geração do último numero de processo. """
@@ -373,14 +365,12 @@ class _NumProcessoHandler(object):
             try:
                 self.__atualizar_total_numero_ultimo_documento(numero_tipo_doc.content[0]["ID_NUMERO_TIPO_DOC"], numero)
             except Exception as e:
-                current.session.flash = "Erro ao reverter geração de numero de processo."
-                raise e
+                raise SIEException("Erro ao reverter geração de numero de processo.", e)
         except ValueError as e:
-            current.session.flash = "Não existem registros de numeros de processo para o tipo de documento " + str(self.id_tipo_doc)
-            raise e
+            raise SIEException("Não existem registros de numeros de processo para o tipo de documento " + str(self.id_tipo_doc), e)
 
     def __obter_mascara(self):
-        return self.api.get("TIPOS_DOCUMENTOS", {"ID_TIPO_DOC": self.id_tipo_doc}, ["MASCARA_TIPO_DOC"]).first()["MASCARA_TIPO_DOC"].strip() # strip é necessário pois máscara vem com whitespaces no final(pq???).
+        return self.api.get("TIPOS_DOCUMENTOS", {"ID_TIPO_DOC": self.id_tipo_doc}, ["MASCARA_TIPO_DOC"]).first()["MASCARA_TIPO_DOC"].strip()  # strip é necessário pois máscara vem com whitespaces no final(pq???).
 
     def __proximo_numero_tipo_documento(self):
         """
@@ -401,8 +391,7 @@ class _NumProcessoHandler(object):
             try:
                 self.__atualizar_total_numero_ultimo_documento(id_numero_tipo_doc, numero)
             except Exception as e:
-                current.session.flash = "Erro ao gerir numeros de processo."
-                raise e
+                raise SIEException("Erro ao gerir numeros de processo.", e)
         except ValueError:
             # caso não exista uma entrada na tabela, criar uma para começar a gerir a sequencia de numeros de processo para esse tipo de documento/ano
             self.__atualizar_indicadores_default()
@@ -460,5 +449,5 @@ class _NumProcessoHandler(object):
         """ Codigo especifico para gerar numero de processo de projetos
             OBS: esse metodo é temporario. Deve-se usar o parser generico. """
         num_ultimo_doc = str(self.__proximo_numero_tipo_documento()).zfill(4)  # NNNN
-        num_processo =  tipo + ("%s/%d" % (num_ultimo_doc, self.ano))  # _NNNN/AAAA
+        num_processo = tipo + ("%s/%d" % (num_ultimo_doc, self.ano))  # _NNNN/AAAA
         return num_processo
