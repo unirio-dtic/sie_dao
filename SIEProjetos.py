@@ -384,7 +384,8 @@ class SIEArquivosProj(SIE):
             'TIPO_ARQUIVO_ITEM': tipo_arquivo,
             'LMIN': 0,
             'LMAX': 1,
-            'ORDERBY': 'ID_ARQUIVO_PROJ DESC'
+            'ORDERBY': 'ID_ARQUIVO_PROJ',
+            'SORT':'DESC'
         }
 
         fields = ["NOME_ARQUIVO", "CONTEUDO_ARQUIVO"]

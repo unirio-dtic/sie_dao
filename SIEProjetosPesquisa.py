@@ -63,7 +63,8 @@ class SIEProjetosPesquisa(SIEProjetos):
             'FUNCAO_ORG_ITEM': self.ITEM_FUNCOES_ORGAOS_AGENCIA_FOMENTO,
             'LMIN': 0,
             'LMAX': 1,
-            'ORDERBY': 'ID_ORGAO_PROJETO ASC'
+            'ORDERBY': 'ID_ORGAO_PROJETO',
+            "SORT":'ASC'
         }
 
         try:

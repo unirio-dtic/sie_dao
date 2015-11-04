@@ -304,8 +304,13 @@ class SIEDocumentoDAO(SIE):
         :rtype : dict
         """
         try:
+            params = {
+                "ID_DOCUMENTO": documento['ID_DOCUMENTO'],
+                "ORDERBY": "ID_TRAMITACAO",
+                "SORT": "DESC"
+            }
             # Pega a tramitacao atual
-            tramitacao = self.api.get(self.tramite_path, {"ID_DOCUMENTO": documento['ID_DOCUMENTO'],"ORDERBY": "ID_TRAMITACAO DESC"}).first()
+            tramitacao = self.api.get(self.tramite_path,params).first()
         except APIException as e:
             current.session.flash = "Não foi possível atualizar tramitação"
             raise e
