@@ -3,10 +3,12 @@ from sie import SIE
 
 __all__ = ["SIEFuncionarioID", "SIEFuncionarios", "SIEDocentes"]
 
+
 class SIEFuncionarioID(SIE):
+    path = "V_FUNCIONARIO_IDS"
+
     def __init__(self):
         super(SIEFuncionarioID, self).__init__()
-        self.path = "V_FUNCIONARIO_IDS"
         self.cacheTime *= 10
 
     def getFuncionarioIDs(self, cpf):
@@ -14,13 +16,12 @@ class SIEFuncionarioID(SIE):
 
 
 class SIEFuncionarios(SIE):
+    path = "FUNCIONARIOS"
+
     def __init__(self):
-        """
+        """ """
 
-
-        """
         super(SIEFuncionarios, self).__init__()
-        self.path = "FUNCIONARIOS"
 
     def getEscolaridade(self, ID_FUNCIONARIO):
         """
@@ -44,13 +45,14 @@ class SIEFuncionarios(SIE):
     def get_funcionario(self, cpf):
         return self.api.get("V_FUNCIONARIOS", params={"CPF": cpf}, cache_time=self.cacheTime).content[0]
 
+
 class SIEDocentes(SIE):
+    path = "V_DOCENTES"
 
     COD_ATIVO = 1
 
     def __init__(self):
         super(SIEDocentes, self).__init__()
-        self.path = "V_DOCENTES"
 
     def getDocentes(self):
         params = {

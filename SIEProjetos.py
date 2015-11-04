@@ -17,11 +17,11 @@ from sie.SIETabEstruturada import SIETabEstruturada
 from unirio.api.result import APIException
 from unirio.api.exceptions import NoContentException
 
-try:
-    db_driver_module = __import__(current.db._adapter.driver_name)
-    IntegrityError = getattr(db_driver_module, "IntegrityError")  # failure to get trigger exception
-except ImportError:
-    IntegrityError = Exception
+# try:
+#     db_driver_module = __import__(current.db._adapter.driver_name)
+#     IntegrityError = getattr(db_driver_module, "IntegrityError")  # failure to get trigger exception
+# except ImportError:
+#     IntegrityError = Exception
 
 
 __all__ = [
@@ -420,7 +420,7 @@ class SIEArquivosProj(SIE):
         return arquivo_proj
 
     @deprecated
-    def salvarArquivo(self, arquivo, projeto, funcionario, TIPO_ARQUIVO_ITEM):
+    def salvarArquivo(self, arquivo, projeto, funcionario, TIPO_ARQUIVO_ITEM, callback=None):
         """
 
         TIPO_ARQUIVO_ITEM = 1       => Projeto
@@ -445,49 +445,50 @@ class SIEArquivosProj(SIE):
         # novoArquivoProj = self.api.post(self.path, arquivoProj)
         # arquivoProj.update({"ID_ARQUIVO_PROJ": novoArquivoProj.insertId})
         # self.salvarDB2BLOB(arquivoProj) # não era para estar aqui!
-        self.salvarCopiaLocal(arquivo, arquivoProj, funcionario)
+        if callback:
+            callback(arquivo, arquivoProj, funcionario)
 
         return arquivoProj
 
-    def salvarCopiaLocal(self, arquivo, arquivo_proj, funcionario, edicao):
-        """
-
-        :type arquivo: FieldStorage
-        :param arquivo: Um arquivo correspondente a um projeto que foi enviado para um formulário
-        :type arquivo_proj: dict
-        :param arquivo_proj: Um dicionário contendo uma entrada da tabela ARQUIVO_PROJS
-        :type funcionario: dict
-        :param funcionario: Dicionário de IDS de um funcionário
-        :type edicao: gluon.storage.Storage
-        :param edicao: Uma entrada da tabela `edicao`
-        """
-        # TODO id_arquivo_proj não está com o comportamente desejado, mas é necessário até que BLOBS sejam inseridos corretamente. Remover o mesmo após resolver problema
-        # noinspection PyExceptClausesOrder,PyBroadException
-        try:
-            with open(arquivo.fp.name, 'rb') as stream:
-                i = current.db.projetos.insert(
-                    anexo_tipo=arquivo.type,
-                    anexo_nome=arquivo.filename,
-                    id_arquivo_proj=None,
-                    id_funcionario=funcionario["ID_FUNCIONARIO"],
-                    id_projeto=arquivo_proj["ID_PROJETO"],
-                    edicao=edicao.id,
-                    arquivo=current.db.projetos.arquivo.store(stream, arquivo.filename),      # upload
-                    tipo_arquivo_item=arquivo_proj["TIPO_ARQUIVO_ITEM"],
-                    dt_envio=datetime.now()
-                )
-                print "Gravou localmente [%s] com ID [%d]" % (arquivo.filename, i)
-        except IOError as e:
-            if e.errno == 63:
-                current.session.flash += "Impossivel salvar o arquivo %s. Nome muito grande" % arquivo.filename
-        except IntegrityError:
-            current.db.rollback()
-            current.session.flash += "Não é possível enviar mais de um arquivo por etapa"
-        except Exception as e:
-            current.db.rollback()
-            raise e
-        finally:
-            current.db.commit()
+    # def salvarCopiaLocal(self, arquivo, arquivo_proj, funcionario, edicao):
+    #     """
+    #
+    #     :type arquivo: FieldStorage
+    #     :param arquivo: Um arquivo correspondente a um projeto que foi enviado para um formulário
+    #     :type arquivo_proj: dict
+    #     :param arquivo_proj: Um dicionário contendo uma entrada da tabela ARQUIVO_PROJS
+    #     :type funcionario: dict
+    #     :param funcionario: Dicionário de IDS de um funcionário
+    #     :type edicao: gluon.storage.Storage
+    #     :param edicao: Uma entrada da tabela `edicao`
+    #     """
+    #     # TODO id_arquivo_proj não está com o comportamente desejado, mas é necessário até que BLOBS sejam inseridos corretamente. Remover o mesmo após resolver problema
+    #     # noinspection PyExceptClausesOrder,PyBroadException
+    #     try:
+    #         with open(arquivo.fp.name, 'rb') as stream:
+    #             i = current.db.projetos.insert(
+    #                 anexo_tipo=arquivo.type,
+    #                 anexo_nome=arquivo.filename,
+    #                 id_arquivo_proj=None,
+    #                 id_funcionario=funcionario["ID_FUNCIONARIO"],
+    #                 id_projeto=arquivo_proj["ID_PROJETO"],
+    #                 edicao=edicao.id,
+    #                 arquivo=current.db.projetos.arquivo.store(stream, arquivo.filename),      # upload
+    #                 tipo_arquivo_item=arquivo_proj["TIPO_ARQUIVO_ITEM"],
+    #                 dt_envio=datetime.now()
+    #             )
+    #             print "Gravou localmente [%s] com ID [%d]" % (arquivo.filename, i)
+    #     except IOError as e:
+    #         if e.errno == 63:
+    #             current.session.flash += "Impossivel salvar o arquivo %s. Nome muito grande" % arquivo.filename
+    #     except IntegrityError:
+    #         current.db.rollback()
+    #         current.session.flash += "Não é possível enviar mais de um arquivo por etapa"
+    #     except Exception as e:
+    #         current.db.rollback()
+    #         raise e
+    #     finally:
+    #         current.db.commit()
 
 
 class SIEClassificacoesPrj(SIE):

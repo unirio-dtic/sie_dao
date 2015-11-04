@@ -57,7 +57,8 @@ class SIEDocumentoDAO(SIE):
         # determinando ultimo numero
         num_processo = num_processo_handler.gerar_numero_processo()
 
-        novo_documento_params.update({"NUM_PROCESSO": num_processo})
+        if not novo_documento_params.get("NUM_PROCESSO", None):
+            novo_documento_params.update({"NUM_PROCESSO": num_processo})
 
         try:
             id_documento = self.api.post(self.path, novo_documento_params).insertId
