@@ -22,6 +22,7 @@ class SIEDocumentoDAO(SIE):
     """ Caminho da API para trabalhar com tramitações """
 
     fluxo_path = "FLUXOS"
+    """ Caminho da API para trabalhar com fluxos de tramitacoes """
 
     def __init__(self):
         super(SIEDocumentoDAO, self).__init__()
