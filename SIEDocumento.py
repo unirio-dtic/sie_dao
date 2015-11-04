@@ -226,7 +226,7 @@ class SIEDocumentoDAO(SIE):
                 "SORT": "DESC"
             }
             # Pega a tramitacao atual
-            tramitacao = self.api.get(self.tramite_path, ).first()
+            tramitacao = self.api.get(self.tramite_path,params ).first()
         except APIException as e:
             current.session.flash = "Não foi possível atualizar tramitação"
             raise e
