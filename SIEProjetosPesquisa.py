@@ -22,7 +22,6 @@ class SIEProjetosPesquisa(SIEProjetos):
     COD_TABELA_AVALIACAO_PROJETOS_INSTITUICAO = 6010  # => Avaliação dos projetos da Instituição
     COD_TABELA_SITUACAO = 6011
 
-
     ITEM_TITULACAO_SUPERIOR_INCOMPLETO = 9
     ITEM_FUNDACOES_NAO_SE_APLICA = 1  # => Não se aplica
     ITEM_TIPO_EVENTO_NAO_SE_APLICA = 1  # => Não se aplica
@@ -46,8 +45,6 @@ class SIEProjetosPesquisa(SIEProjetos):
     SITUACAO_ATIVO = 'A'
     ACESSO_PARTICIPANTES_APENAS_COORDENADOR = 'N'
     NAO_PAGA_BOLSA = 'N'
-
-
 
     def __init__(self):
         super(SIEProjetosPesquisa, self).__init__()
@@ -73,8 +70,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         except (NoContentException,ValueError):
             return None
 
-
-    def registrar_projeto(self,id_projeto,funcionario):
+    def registrar_projeto(self, id_projeto, funcionario):
         """
         Cria o documento e tramita para DPQ. Muda status do projeto tb.
         :param id_projeto:
@@ -84,12 +80,14 @@ class SIEProjetosPesquisa(SIEProjetos):
         documento_projeto = self.documento_inicial_padrao(funcionario)
         documento = SIEDocumentoDAO().criar_documento(documento_projeto)
 
-        resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo,id_projeto)
+        # marcando a maneira de lidar com o fluxo caso o destino esteja em uma query (IND_QUERY='S')
+        resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo, id_projeto)
 
-        SIEDocumentoDAO().primeira_tramitacao(documento, funcionario, resolvedor_destino) # TODO Seria esse o melhor lugar?
+        # faz a primeira tramitação
+        SIEDocumentoDAO().tramitar_documento(documento, funcionario, resolvedor_destino=resolvedor_destino)  # TODO Seria esse o melhor lugar?
 
         projeto = {
-            "ID_PROJETO":id_projeto,
+            "ID_PROJETO": id_projeto,
             "ID_DOCUMENTO": documento['ID_DOCUMENTO'],
             "NUM_PROCESSO": documento['NUM_PROCESSO']
         }
@@ -100,8 +98,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         else:
             return False
 
-
-    def resolve_destino_tramitacao(self,fluxo, id_projeto):
+    def resolve_destino_tramitacao(self, fluxo, id_projeto):
         """
         Resolve o destino do fluxo. No caso de projetos, faz uma query específica no banco.
         Ideal seria que este método fosse uma espécie de delegate, com parâmetros variáveis. pq todo o método primeira tramitacao iria para dentro de um DAO de documento.
@@ -111,7 +108,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             "ID_PROJETO": id_projeto
         }
         id_destino = self.api.get("ORGAOS_PROJETOS", params).first()
-        return (fluxo['TIPO_DESTINO'],id_destino)
+        return (fluxo['TIPO_DESTINO'], id_destino)
 
     def get_projeto_as_row(self, id_projeto):
         """
