@@ -77,6 +77,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         :return:
         """
 
+
         documento_projeto = self.documento_inicial_padrao(funcionario)
         documento = SIEDocumentoDAO().criar_documento(documento_projeto)
 
@@ -84,7 +85,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo, id_projeto)
 
         # faz a primeira tramitação
-        SIEDocumentoDAO().tramitar_documento(documento, funcionario, resolvedor_destino=resolvedor_destino)  # TODO Seria esse o melhor lugar?
+        SIEDocumentoDAO().tramitar_documento(documento, funcionario, fluxo=None,resolvedor_destino=resolvedor_destino)
 
         projeto = {
             "ID_PROJETO": id_projeto,
@@ -126,6 +127,8 @@ class SIEProjetosPesquisa(SIEProjetos):
                 agencia_fomento = self.get_agencia_fomento(id_projeto)
 
                 projeto = {
+                    'id_documento': projeto_bd['ID_DOCUMENTO'],
+                    'num_processo': projeto_bd['NUM_PROCESSO'],
                     'titulo': projeto_bd[u'TITULO'].encode('utf-8'),
                     'resumo': projeto_bd[u'RESUMO'].encode('utf-8'),
                     'keyword_1': projeto_bd[u'PALAVRA_CHAVE01'].encode('utf-8'),
