@@ -15,7 +15,7 @@ from sie.SIEFuncionarios import SIEFuncionarios
 from sie.SIETabEstruturada import SIETabEstruturada
 
 from unirio.api.result import APIException
-from unirio.api.exceptions import NoContentException
+from unirio.api.exceptions import NoContentException,NullParameterException
 
 # try:
 #     db_driver_module = __import__(current.db._adapter.driver_name)
@@ -261,6 +261,7 @@ class SIEProjetos(SIE):
         except APIException:
             raise APIException("Não foi possível atualizar o estado da avaliação de um projeto.")
 
+    @deprecated
     def removerProjeto(self, ID_PROJETO):
         """
         Dada uma entrada na tabela PROJETOS, a função busca e remove essa entrada após buscar e remover o DOCUMENTO
@@ -273,11 +274,13 @@ class SIEProjetos(SIE):
         SIEOrgaosProjetos().removerOrgaosProjetosDeProjeto(projeto['ID_PROJETO'])
         SIEClassifProjetos().removerClassifProjetosDeProjeto(projeto['ID_PROJETO'])
 
-        try:
+
+        if projeto["ID_DOCUMENTO"]:
+            # Se existe documento relacionado a este documento.
             documento = SIEDocumentoDAO().obter_documento(projeto['ID_DOCUMENTO'])
             SIEDocumentoDAO().remover_documento(documento)
-        except ValueError:
-            print "Documento %d não encontrado" % projeto['ID_DOCUMENTO']
+        else:
+            print "Nenhum documento relacionado ao projeto %d" % ID_PROJETO # TODO Colocar logging?
 
         self.api.delete(self.path, {"ID_PROJETO": ID_PROJETO})
 
