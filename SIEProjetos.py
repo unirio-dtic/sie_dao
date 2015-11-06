@@ -317,6 +317,37 @@ class SIEProjetos(SIE):
         return novo_documento_params
 
 
+class SIEAvaliacaoProjDAO(SIE):
+
+    def __init__(self):
+        super(SIEAvaliacaoProjDAO,self).__init__()
+        self.path = "AVALIACOES_PROJ"
+
+
+    def get_avaliacao(self,ano_ref,id_projeto):
+        """
+        Retorna uma row da tabela AVALIACOES_PROJ -> indica que já foi criada uma avaliação para aquele projeto no ano de referencia.
+        Tal row só é criada quando o docente envia um relatório de pesquisa.
+
+        :param ano_ref: ano de referencia
+        :param id_projeto: id do projeto
+        :return: dicionário contendo informações da linha respectiva no bd
+
+        """
+
+        params = {
+            "ID_PROJETO": id_projeto,
+            "ANO_REF":ano_ref,
+            "LMIN":0,
+            "LMAX":1
+        }
+        try:
+            avaliacao = self.api.get(self.path,ano_ref).first()
+            return avaliacao.first()
+        except NoContentException:
+            return None
+
+
 class SIEArquivosProj(SIE):
 
     COD_TABELA_TIPO_ARQUIVO = 6005
