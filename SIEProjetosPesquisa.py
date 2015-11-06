@@ -75,6 +75,25 @@ class SIEProjetosPesquisa(SIEProjetos):
         except (NoContentException,ValueError):
             return None
 
+    def enviar_relatorio_docente(self, relatorio,funcionario,ano_ref):
+        arquivo_salvo = SIEArquivosProj().salvar_arquivo(nome_arquivo=relatorio.filename,
+                                         arquivo=relatorio.arquivo,
+                                         id_projeto=relatorio.id_projeto,
+                                         tipo_arquivo=SIEArquivosProj.ITEM_TIPO_ARQUIVO_RELATORIO_DOCENTE)
+
+        documento_avaliacao = SIEAvaliacaoProjsPesquisaDAO().documento_inicial_padrao(funcionario)
+        documento = SIEDocumentoDAO().criar_documento(documento_avaliacao)
+
+        #cria avaliacao para o arquivo
+        avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,ano_ref)
+
+        #atualizar ref tabela de arquivos.
+        SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"],{"ID_AVALIACAO_PROJ":avaliacao["ID_AVALIACAO_PROJ"]})
+
+        # tramita para a câmara
+        resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo, relatorio.id_projeto)
+        SIEDocumentoDAO().tramitar_documento(documento, funcionario, fluxo=None,resolvedor_destino=resolvedor_destino)
+
     def registrar_projeto(self, id_projeto, funcionario):
         """
         Cria o documento e tramita para DPQ. Muda status do projeto tb.
@@ -534,11 +553,37 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
 
 
 class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
+
+
     def __init__(self):
         super(SIEAvaliacaoProjDAO,self).__init__()
 
 
+    def criar_avaliacao(self,id_projeto,documento,ano_ref):
 
+        avaliacao_default = {
+            "PERIODO_REF_TAB":"",
+            "PERIODO_REF_ITEM":"",
+            "TIPO_AVAL_TAB": 6016,
+            "TIPO_AVAL_ITEM": 1,
+            "SITUACAO_TAB": "",
+            "SITUACAO_ITEM": ""
+
+        }
+
+        avaliacao_default.update({
+            "ID_PROJETO":id_projeto,
+            "ID_DOCUMENTO":documento['ID_DOCUMENTO'],
+            "ANO_REF":ano_ref,
+            "NUM_PROCESSO":documento["NUM_PROCESSO"]
+        })
+
+        try:
+            resultado = self.api.post(self.path, avaliacao_default)
+            avaliacao_default.update({"ID_ARQUIVO_PROJ": resultado.insertId})  # ????
+        except APIException:
+            avaliacao_default = None
+        return avaliacao_default
 
 
 class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):

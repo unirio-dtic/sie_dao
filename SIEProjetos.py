@@ -342,11 +342,34 @@ class SIEAvaliacaoProjDAO(SIE):
             "LMAX":1
         }
         try:
-            avaliacao = self.api.get(self.path,ano_ref).first()
+            avaliacao = self.api.get(self.path,params).first()
             return avaliacao.first()
         except NoContentException:
             return None
 
+    def documento_inicial_padrao(self,funcionario):
+        #TODO Checar com o ALEX!
+        novo_documento_params = {
+            "ID_TIPO_DOC": 223,
+            "ID_PROCEDENCIA": funcionario["ID_CONTRATO_RH"],
+            "ID_PROPRIETARIO": funcionario["ID_USUARIO"],
+            "ID_CRIADOR": funcionario["ID_USUARIO"],
+            "TIPO_PROCEDENCIA": "S",
+            "TIPO_INTERESSADO": "S",
+            "ID_INTERESSADO": funcionario["ID_CONTRATO_RH"],
+            "SITUACAO_ATUAL": 1,
+            "TIPO_PROPRIETARIO": 20, # Indica a restrição de usuário
+            # "TIPO_ORIGEM": 20,  # atualizacao do sie Out/2015
+            "DT_CRIACAO": date.today(),
+            "IND_ELIMINADO": "N",
+            "IND_AGENDAMENTO": "N",
+            "IND_RESERVADO": "N",
+            "IND_EXTRAVIADO": "N",
+            "TEMPO_ESTIMADO": 1,
+            # "SEQUENCIA": 1  # atualizacao do sie Out/2015
+        }
+
+        return novo_documento_params
 
 class SIEArquivosProj(SIE):
 
@@ -446,12 +469,18 @@ class SIEArquivosProj(SIE):
             "CONTEUDO_ARQUIVO": SIE.handle_blob(arquivo)
         }
 
-        try:
-            novo_arquivo_proj = self.api.post(self.path, arquivo_proj)
-            arquivo_proj.update({"ID_ARQUIVO_PROJ": novo_arquivo_proj.insertId})  # ????
-        except APIException:
-            arquivo_proj = None
-        return arquivo_proj
+    def atualizar_arquivo(self,id_arquivo,params):
+        if params == None:
+            raise RuntimeError # TODO SIEError?
+
+        assert isinstance(params,dict)
+
+        params.update({
+            "ID_ARQUIVO_PROJ":id_arquivo
+        })
+
+        self.api.put(self.path,params)
+
 
     @deprecated
     def salvarArquivo(self, arquivo, projeto, funcionario, TIPO_ARQUIVO_ITEM, callback=None):
