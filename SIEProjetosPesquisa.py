@@ -6,7 +6,7 @@ from sie.SIEDocumento import SIEDocumentoDAO
 from sie.sie_utils import campos_sie_lower
 from pydal.objects import Row
 from datetime import date, datetime
-
+import collections
 
 class SIEProjetosPesquisa(SIEProjetos):
     """
@@ -29,6 +29,7 @@ class SIEProjetosPesquisa(SIEProjetos):
     ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE = 1  # => Não-avaliado
     ITEM_CLASSIFICACAO_PROJETO_PESQUISA = 39718
     ITEM_SITUACAO_TRAMITE_REGISTRO = 8
+    ITEM_SITUACAO_ANDAMENTO = 2
     # TODO Ter estes parâmetros HARD-CODED é uma limitação.
     ITEM_FUNCOES_PROJ_CANDIDATO_BOLSISTA = 50
     ITEM_FUNCOES_PROJ_DESCR = 0
@@ -39,6 +40,7 @@ class SIEProjetosPesquisa(SIEProjetos):
     ITEM_FUNCOES_ORGAOS_RESPONSAVEL = 5
     ITEM_FUNCOES_ORGAOS_AGENCIA_FOMENTO = 4
     ITEM_ESTADO_REGULAR = 1
+
 
     TIPO_DOCUMENTO = 217
 
@@ -76,7 +78,6 @@ class SIEProjetosPesquisa(SIEProjetos):
         :param id_projeto:
         :return:
         """
-
 
         documento_projeto = self.documento_inicial_padrao(funcionario)
         documento = SIEDocumentoDAO().criar_documento(documento_projeto)
@@ -330,7 +331,11 @@ class SIEProjetosPesquisa(SIEProjetos):
         except ValueError:
             return {}
 
-    def get_projetos(self, cpf_coordenador=None):
+    def get_projetos_em_andamento(self,cpf_coordenador):
+        return self.get_projetos(cpf_coordenador,self.ITEM_SITUACAO_ANDAMENTO)
+
+
+    def get_projetos(self, cpf_coordenador=None,situacoes=None):
 
         params = {
             "LMIN": 0,
@@ -341,6 +346,13 @@ class SIEProjetosPesquisa(SIEProjetos):
             params.update({
                 "CPF_COORDENADOR": cpf_coordenador
             })
+        if situacoes:
+            if isinstance(situacoes, collections.Iterable) and len(situacoes) > 1:
+                params.update({"SITUACAO_ITEM_SET":situacoes})
+            elif isinstance(situacoes, collections.Iterable):
+                params.update({"SITUACAO_ITEM": situacoes[0]}) # TODO AttributeError?
+            else:
+                params.update({"SITUACAO_ITEM":situacoes})
 
         try:
             res = self.api.get("V_PROJETOS_PESQUISA", params, cache_time=0)

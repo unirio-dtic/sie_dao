@@ -303,7 +303,7 @@ class SIEProjetos(SIE):
             "TIPO_INTERESSADO": "S",
             "ID_INTERESSADO": funcionario["ID_CONTRATO_RH"],
             "SITUACAO_ATUAL": 1,
-            "TIPO_PROPRIETARIO": 20,
+            "TIPO_PROPRIETARIO": 20, # Indica a restrição de usuário
             # "TIPO_ORIGEM": 20,  # atualizacao do sie Out/2015
             "DT_CRIACAO": date.today(),
             "IND_ELIMINADO": "N",
