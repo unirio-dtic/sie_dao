@@ -5,6 +5,7 @@ from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj,
 from sie.SIEDocumento import SIEDocumentoDAO
 from sie.SIEParametros import SIEParametrosDAO
 from sie.sie_utils import campos_sie_lower
+from sie import SIE, SIEException
 from pydal.objects import Row
 from datetime import date, datetime
 import collections
@@ -586,12 +587,99 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         return avaliacao_default
 
 
+class SIECandidatosBolsistasProjsPesquisa(SIE):
+    """
+    Classe DAO que faz a interação com a tabela de candidatos a bolsistas
+    """
+
+    path = "CANDIDATOS_BOLSISTA"
+
+    def __init__(self):
+        super(SIECandidatosBolsistasProjsPesquisa,self).__init__()
+
+    def from_candidato_item(self, candidato,id_plano_de_estudos):
+        """
+        Monta candidato a ser inserido no banco de dados a partir da instancia guardada dos formulários anteriores na session
+        :param candidato:
+        :return:
+        """
+
+        candidato_bolsista = {
+            "ID_PROJETO":candidato['projeto_pesquisa'],
+            "ID_CURSO_ALUNO": candidato['id_curso_aluno'],
+            "ID_PLANO_ESTUDO": id_plano_de_estudos,
+            #"STATUS": None # TODO para que serve
+            #"ID_BOLSA": None # TODO para que serve?
+        }
+
+        if candidato['link_lattes']:
+            candidato_bolsista.update({"LINK_LATTES":candidato['link_lattes']})
+        if candidato['descr_mail']:
+            candidato_bolsista.update({"DESCR_MAIL":candidato['descr_mail']})
+        if candidato['renovacao']:
+            candidato_bolsista.update({"RENOVACAO": "S"})
+
+        # ESSE ERA O ANTIGO. DEIXAR AQUI POIS NUNCA SE SABE.
+        # candidato_bolsista = {
+        #     "ID_PROJETO": candidato['projeto_pesquisa'],
+        #     "FUNCAO_ITEM": SIEProjetosPesquisa.ITEM_FUNCOES_PROJ_CANDIDATO_BOLSISTA,
+        #     "CARGA_HORARIA": 20,
+        #     "TITULACAO_ITEM": SIEProjetosPesquisa.ITEM_TITULACAO_SUPERIOR_INCOMPLETO, # TODO Deve ser mesmo hard-coded? E se for uma segunda graduação?
+        #     "CH_SUGERIDA": 20,
+        #     "ID_CURSO_ALUNO": candidato['id_curso_aluno'],
+        #     "ID_PESSOA": candidato['id_pessoa'],
+        #     "ID_UNIDADE": candidato['id_unidade'],
+        #     "DT_INICIAL": date.today(),
+        #     "DESCR_MAIL": candidato['descr_mail'],
+        #     # "ID_BOLSISTA": "..." # TODO??
+        #     "LINK_LATTES": candidato['link_lattes'],
+        # }
+        return candidato_bolsista
+
+
+    def get_candidato_bolsista(self,**kwargs):
+        """
+        Retorna o candidato a bolsista, dependendo dos kwargs passados. Existem duas formas de se pegar um candidato a bolsista:
+        Uma é via o id_candidatos_bolsista, ou é via id_projeto + id_curso_aluno
+        :param kwargs: idealmente, ou é { id_candidatos_bolsista: } ou {id_projeto: "", id_curso_aluno: ""}
+        :return: candidato a bolsista ou None
+        :rtype dict
+        """
+
+        params = {}
+        if kwargs.has_key('id_candidatos_bolsista'):
+            params.update({
+                "ID_CANDIDATOS_BOLSISTA":kwargs['id_candidatos_bolsista']
+            })
+        elif kwargs.has_key('id_projeto') and kwargs.has_key('id_curso_projeto'):
+            params.update({
+                "ID_PROJETO":kwargs['id_projeto'],
+                "ID_CURSO_ALUNO":kwargs['id_curso_aluno']
+            })
+        else:
+            raise RuntimeError("Parâmetros inválidos.")
+
+        return self.api.get_single_result(self.path,params,cache_time=0)
+
+
+    def cadastra_candidato(self,candidato):
+        """
+        Cadastra candidato a bolsista no banco pela API.
+
+        :param candidato:
+        :return:
+        """
+
+        return self.api.post(self.path, candidato)
+
 class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
     COD_SITUACAO_ATIVO = "A"
 
+    path = "PARTICIPANTES_PROJ"
+
     def __init__(self):
         super(SIEParticipantesProjsPesquisa, self).__init__()
-        self.path = "PARTICIPANTES_PROJ"
+
 
     def cadastra_participante(self, participante):
         """
@@ -672,23 +760,23 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
             return None
 
 
-    def get_participante_candidato_bolsista(self, id_projeto, id_pessoa):
-        """
-        Retorna dicionário com o participante de id_projeto e id_pessoa.
-        :return: dict com informações dos participantes, None caso contrário.
-        """
-        params = {"LMIN": 0,
-                  "LMAX": 1,
-                  "ID_PROJETO": id_projeto,
-                  "ID_PESSOA": id_pessoa,
-                  "SITUACAO": self.COD_SITUACAO_ATIVO,
-                  "FUNCAO_ITEM": SIEProjetosPesquisa.ITEM_FUNCOES_PROJ_CANDIDATO_BOLSISTA
-                  }
-        try:
-            res = self.api.get("PARTICIPANTES_PROJ", params,  cache_time=0)
-            return res.content[0] if res is not None else None
-        except ValueError:
-            return None
+    # def get_participante_candidato_bolsista(self, id_projeto, id_pessoa):
+    #     """
+    #     Retorna dicionário com o participante de id_projeto e id_pessoa.
+    #     :return: dict com informações dos participantes, None caso contrário.
+    #     """
+    #     params = {"LMIN": 0,
+    #               "LMAX": 1,
+    #               "ID_PROJETO": id_projeto,
+    #               "ID_PESSOA": id_pessoa,
+    #               "SITUACAO": self.COD_SITUACAO_ATIVO,
+    #               "FUNCAO_ITEM": SIEProjetosPesquisa.ITEM_FUNCOES_PROJ_CANDIDATO_BOLSISTA
+    #               }
+    #     try:
+    #         res = self.api.get("PARTICIPANTES_PROJ", params,  cache_time=0)
+    #         return res.content[0] if res is not None else None
+    #     except ValueError:
+    #         return None
 
 
     def from_form(self, form):

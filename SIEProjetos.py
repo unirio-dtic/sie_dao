@@ -469,6 +469,13 @@ class SIEArquivosProj(SIE):
             "CONTEUDO_ARQUIVO": SIE.handle_blob(arquivo)
         }
 
+        try:
+           novo_arquivo_proj = self.api.post(self.path, arquivo_proj)
+           arquivo_proj.update({"ID_ARQUIVO_PROJ": novo_arquivo_proj.insertId})  # ????
+        except APIException:
+            arquivo_proj = None
+        return arquivo_proj
+
     def atualizar_arquivo(self,id_arquivo,params):
         if params == None:
             raise RuntimeError # TODO SIEError?
