@@ -91,7 +91,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"],{"ID_AVALIACAO_PROJ":avaliacao["ID_AVALIACAO_PROJ"]})
 
         # tramita para a câmara
-        resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo, relatorio.id_projeto)
+        resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo, relatorio.id_projeto) # TODO É o mesmo de registrar projeto?
         SIEDocumentoDAO().tramitar_documento(documento, funcionario, fluxo=None,resolvedor_destino=resolvedor_destino)
 
     def registrar_projeto(self, id_projeto, funcionario):
