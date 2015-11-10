@@ -83,7 +83,7 @@ class SIEProjetosPesquisa(SIEProjetos):
                                          tipo_arquivo=SIEArquivosProj.ITEM_TIPO_ARQUIVO_RELATORIO_DOCENTE)
 
         documento_avaliacao = SIEAvaliacaoProjsPesquisaDAO().documento_inicial_padrao(funcionario)
-        documento = SIEDocumentoDAO().criar_documento(documento_avaliacao)
+        documento = SIEDocumentoDAO().criar_documento(documento_avaliacao) # PASSO 1
 
         #cria avaliacao para o arquivo
         avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,ano_ref)
@@ -93,7 +93,7 @@ class SIEProjetosPesquisa(SIEProjetos):
 
         # tramita para a câmara
         resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo, relatorio.id_projeto) # TODO É o mesmo de registrar projeto?
-        SIEDocumentoDAO().tramitar_documento(documento, funcionario, fluxo=None,resolvedor_destino=resolvedor_destino)
+        SIEDocumentoDAO().tramitar_documento(documento, funcionario, fluxo=None,resolvedor_destino=resolvedor_destino) # PASSO 2
 
     def registrar_projeto(self, id_projeto, funcionario):
         """
@@ -103,13 +103,13 @@ class SIEProjetosPesquisa(SIEProjetos):
         """
 
         documento_projeto = self.documento_inicial_padrao(funcionario)
-        documento = SIEDocumentoDAO().criar_documento(documento_projeto)
+        documento = SIEDocumentoDAO().criar_documento(documento_projeto) # PASSO 1
 
         # marcando a maneira de lidar com o fluxo caso o destino esteja em uma query (IND_QUERY='S')
         resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo, id_projeto)
 
         # faz a primeira tramitação
-        SIEDocumentoDAO().tramitar_documento(documento, funcionario, fluxo=None,resolvedor_destino=resolvedor_destino)
+        SIEDocumentoDAO().tramitar_documento(documento, funcionario, fluxo=None,resolvedor_destino=resolvedor_destino) # PASSO 2
 
         projeto = {
             "ID_PROJETO": id_projeto,
@@ -671,6 +671,20 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
         """
 
         return self.api.post(self.path, candidato)
+
+
+    def inserir_candidato_bolsista(self,candidato,id_plano_estudos):
+
+        candidato_bolsista = SIECandidatosBolsistasProjsPesquisa().from_candidato_item(candidato,id_plano_estudos)
+
+        candidato_bolsista_no_banco = SIECandidatosBolsistasProjsPesquisa().get_candidato_bolsista(id_projeto=candidato['projeto_pesquisa'],id_curso_aluno=candidato['id_curso_aluno']) # TODO seria essa uma boa maneira de verificar? podia ter uma exception quando inserisse? id_projeto + id_curso_aluno?
+        if not candidato_bolsista_no_banco:
+            SIECandidatosBolsistasProjsPesquisa().cadastra_candidato(candidato_bolsista)
+        else:
+            raise CandidatoBolsistaExistenteException
+
+def CandidatoBolsistaExistenteException(SIEException):
+    pass
 
 class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
     COD_SITUACAO_ATIVO = "A"
