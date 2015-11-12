@@ -13,7 +13,13 @@ __all__ = [
 
 
 class SIEDocumentoDAO(SIE):
-    # ID_TIPO_DOC = 215  # sou uma gambi esquecida
+
+    TRAMITACAO_PRIORIDADE_NORMAL = 2
+
+    TRAMITACAO_SITUACAO_AGUARDANDO = "T"
+    """ Indica que o documento não foi enviado ainda para tramitação (aguardando) """
+    TRAMITACAO_SITUACAO_ENTREGUE = "E"
+    TRAMITACAO_SITUACAO_RECEBIDO = "R"
 
     path = "DOCUMENTOS"
     """ Caminho da API para trabalhar com documentos """
@@ -60,10 +66,11 @@ class SIEDocumentoDAO(SIE):
         try:
             id_documento = self.api.post(self.path, novo_documento_params).insertId
             novo_documento = self.api.get(self.path, {"ID_DOCUMENTO": id_documento}).first()
+
             # criando entrada na tabela de tramitacões (pre-etapa)
             self.__adiciona_registro_inicial_tramitacao(novo_documento)
+
         except APIException as e:
-            # TODO decrementar proximo_numero_tipo_documento
             num_processo_handler.reverter_ultimo_numero_processo()
             raise e
 
@@ -96,59 +103,9 @@ class SIEDocumentoDAO(SIE):
         if response.affectedRows > 0:
             del documento
 
-    def atualizar_situacao_documento(self, documento, fluxo):
-        novo_documento = {
-            "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
-            "SITUACAO_ATUAL": fluxo["SITUACAO_FUTURA"]
-        }
-        self.api.put(self.path, novo_documento)
-
-    # ========================= Tramitacao ===================================
-
-# TODO checar com o alex se esse registro inicial é padrão ou varia de acordo com o tipo de documento
-    def __adiciona_registro_inicial_tramitacao(self, documento):
+    def tramitar_documento(self, documento, funcionario, fluxo, resolvedor_destino=None):  # TODO documentacao
         """
-        Cria um registro na tabela de tramitações para esse documento.
-
-        Deve ser feito antes de fazer a primeira tramitacao do documento (de preferencia ao criar o documento)
-
-        SEQUENCIA = 1           => Primeiro passo da tramitação
-        PRIORIDADE_TAB = 5101   => Tabela estruturada utilizada para indicar o nível de prioridade
-        PRIORIDADE_ITEM = 2     => Prioridade normal
-        SITUACAO_TRAMIT = T     => Indica que o documento não foi enviado ainda para tramitação (aguardando)
-        IND_RETORNO_OBRIG = N   => Valor fixo, conforme documento da Síntese
-
-        :rtype : dict
-        :return: Um dicionário equivalente a uma entrada da tabela TRAMITACOES
-        """
-        tramitacao_params = {
-            "SEQUENCIA": 1,
-            "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
-            "TIPO_ORIGEM": documento["TIPO_PROPRIETARIO"],
-            "ID_ORIGEM": documento["ID_PROPRIETARIO"],
-            "TIPO_DESTINO": documento["TIPO_PROPRIETARIO"],
-            "ID_DESTINO": documento["ID_PROPRIETARIO"],
-            "DT_ENVIO": date.today(),
-            "SITUACAO_TRAMIT": "T",
-            "IND_RETORNO_OBRIG": "N",
-            "PRIORIDADE_TAB": 5101,
-        }
-
-        id_tramitacao = self.api.post(self.tramite_path, tramitacao_params).insertId
-        tramitacao = self.api.get(self.tramite_path, {"ID_TRAMITACAO": id_tramitacao}).first()
-
-        return tramitacao
-
-    def tramitar_documento(self, documento, funcionario, fluxo=None, resolvedor_destino=None):
-        """
-        Tramita um documento de acordo com o fluxo especificado.
-
-        A regra de negócios diz que uma tramitação muda a situação atual de um documento para uma situação futura
-        determinada pelo seu fluxo. Isso faz com que seja necessário que atulizemos as tabelas `TRAMITACOES` e
-        `DOCUMENTOS`
-
-        Caso o fluxo não seja especificado (ou None), a chamada corresponde às etapas especificadas no documento enviado pela consultoria Síntese a respeito da primeira tramitação de um projeto.
-        Nesse caso, com a tramitação criada por uma etapa de criar documento, ela é alterada com algumas informações para entrega.
+        Envia o documento seguindo o fluxo especificado.
 
         :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
         :type documento: dict
@@ -157,50 +114,174 @@ class SIEDocumentoDAO(SIE):
         :param fluxo: Um dicionário referente a uma entrada na tabela FLUXOS
         :type fluxo: dict
         :param resolvedor_destino é um callable que resolve o destino dado um fluxo que tenha a flag IND_QUERY='S', ou seja, o tipo_destino e id_destino devem ser obtidos através de uma query adicional. O retorno deve ser uma tupla (tipo_destino, id_destino).
-
+        :type resolvedor_destino: callable
         :rtype : dict
         """
-        if not fluxo:
-            fluxo = self.obter_fluxo_inicial(documento)
+        # No SIE, tramitar documento é atualizar a situação da tramitacao (e outros campos) e definir o fluxo dela
+        self._marcar_tramitacao_atual_entregue(documento, funcionario, fluxo, resolvedor_destino)
+
+    def receber_documento(self, documento):  # TODO melhorar documentacao
+        """
+        Marca o documento como recebido.
+
+        :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
+        :type documento: dict
+        :return:
+        """
+        self._marcar_tramitacao_atual_recebida(documento)
+        self._criar_registro_tramitacao(documento)
+
+    def atualizar_situacao_documento(self, documento, fluxo):  # TODO documentacao
+        novo_documento = {
+            "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
+            "SITUACAO_ATUAL": fluxo["SITUACAO_FUTURA"]
+        }
+        self.api.put(self.path, novo_documento)
+
+    # ========================= Tramitacao ===================================
+
+    def __adiciona_registro_inicial_tramitacao(self, documento):
+        """
+        Cria um registro na tabela de tramitações para esse documento recem-criado.
+
+        Deve ser feito antes de fazer a primeira tramitacao do documento (de preferencia ao criar o documento)
+
+        :rtype : dict
+        :return: Um dicionário equivalente a uma entrada da tabela TRAMITACOES
+        """
+
+        tramitacao_params = {
+            "SEQUENCIA": 1,  # Primeiro passo da tramitação
+            "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
+            "TIPO_ORIGEM": documento["TIPO_PROPRIETARIO"],
+            "ID_ORIGEM": documento["ID_PROPRIETARIO"],
+            "TIPO_DESTINO": documento["TIPO_PROPRIETARIO"],
+            "ID_DESTINO": documento["ID_PROPRIETARIO"],
+            "DT_ENVIO": date.today(),
+            "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_AGUARDANDO,
+            "IND_RETORNO_OBRIG": "N",  # Valor fixo, conforme documento da Síntese
+            # NEW!
+            "COD_OPERADOR": documento["COD_OPERADOR"],
+            "DT_ALTERACAO": date.today(),
+            "HR_ALTERACAO": strftime("%H:%M:%S"),
+            "CONCORRENCIA": 0,
+            "PRIORIDADE_TAB": 5101,  # Tabela estruturada utilizada para indicar o nível de prioridade
+            "PRIORIDADE_ITEM": SIEDocumentoDAO.TRAMITACAO_PRIORIDADE_NORMAL
+        }
+
+        id_tramitacao = self.api.post(self.tramite_path, tramitacao_params).insertId
+        tramitacao = self.api.get(self.tramite_path, {"ID_TRAMITACAO": id_tramitacao}).first()
+
+        return tramitacao
+
+    def _criar_registro_tramitacao(self, documento):
+        """
+        Cria um registro novo na tabela de tramitações para esse documento.
+
+        :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
+        :type documento: dict
+        :return:
+        """
+
+        # pegar a mais recente do documento
+        tramitacao_anterior = self.obter_tramitacao_atual(documento)
+
+        # só deveriamos criar um registro novo caso a tramitacao anterior estiver no estado SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO
+        if tramitacao_anterior["SITUACAO_TRAMIT"] != SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO:
+            raise SIEException("Tramitação anterior ainda não foi processada")
+
+        # TODO conferir com o Alex e testar
+        tramitacao_params = {
+            "SEQUENCIA": tramitacao_anterior["SEQUENCIA"] + 1,
+            "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
+            "TIPO_ORIGEM": documento["TIPO_PROPRIETARIO"],
+            "ID_ORIGEM": documento["ID_PROPRIETARIO"],
+            "TIPO_DESTINO": documento["TIPO_PROPRIETARIO"],
+            "ID_DESTINO": documento["ID_PROPRIETARIO"],
+            "DT_ENVIO": date.today(),
+            "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_AGUARDANDO,
+            "IND_RETORNO_OBRIG": "N",
+            "COD_OPERADOR": documento["COD_OPERADOR"],
+            "DT_ALTERACAO": date.today(),
+            "HR_ALTERACAO": strftime("%H:%M:%S"),
+            "CONCORRENCIA": tramitacao_anterior["CONCORRENCIA"] + 1,
+            "PRIORIDADE_TAB": 5101,
+            "PRIORIDADE_ITEM": SIEDocumentoDAO.TRAMITACAO_PRIORIDADE_NORMAL
+        }
+
+        id_tramitacao = self.api.post(self.tramite_path, tramitacao_params).insertId
+        tramitacao = self.api.get(self.tramite_path, {"ID_TRAMITACAO": id_tramitacao}).first()  # pega uma instancia nova do banco (por segurança)
+
+        return tramitacao
+
+    def _marcar_tramitacao_atual_entregue(self, funcionario, documento, fluxo, resolvedor_destino=None):
+        """
+        Marca a tramitacao atual como entregue, atualiza os campos necessarios e define o fluxo especificado na tramitacao.
+
+        :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
+        :type documento: dict
+        :param funcionario: Um dicionário referente a uma entrada na view V_FUNCIONARIO_IDS
+        :type funcionario: dict
+        :param fluxo: Um dicionário referente a uma entrada na tabela FLUXOS
+        :type fluxo: dict
+        :param resolvedor_destino é um callable que resolve o destino dado um fluxo que tenha a flag IND_QUERY='S', ou seja, o tipo_destino e id_destino devem ser obtidos através de uma query adicional. O retorno deve ser uma tupla (tipo_destino, id_destino).
+        :type resolvedor_destino: callable
+        :rtype : dict
+        """
 
         try:
             # Pega a tramitacao atual
             tramitacao = self.obter_tramitacao_atual(documento)
-        except APIException as e:
-            raise SIEException("Não foi possível atualizar tramitação", e)
 
-        try:
-            # Se IND_QUERY é S, temos que alterar o tipo_destino e o id_destino do fluxo (não é o destino do fluxo cadastrado).
-            if fluxo['IND_QUERY'].strip() == 'S':
-                print("Fluxo possui flag IND_QUERY='S'. Usar resolvedor_destino para atualizar o tipo_destino e id_destino")
+            if self.__is_destino_fluxo_definido_externamente(fluxo):
                 if not resolvedor_destino:
-                    raise SIEException("Tentando tramitar um documento através de um fluxo que possui a flag IND_QUERY='S' sem ter especificado resolvedor_destino! Parar.")
-                (tipo_destino, id_destino) = resolvedor_destino(fluxo)
+                    raise SIEException("Não é possível tramitar um documento através de um fluxo que possui a flag IND_QUERY='S' sem ter especificado uma callable para resolver o destino (id/tipo)")
+
+                tipo_destino, id_destino = resolvedor_destino(fluxo)
                 fluxo.update({'TIPO_DESTINO': tipo_destino, 'ID_DESTINO': id_destino})
 
-            nova_tramitacao = {
-                "ID_TRAMITACAO": tramitacao["ID_TRAMITACAO"],
+            # atualizando a tramitacao
+            tramitacao.update({
                 "TIPO_DESTINO": fluxo["TIPO_DESTINO"],
                 "ID_DESTINO": fluxo["ID_DESTINO"],
                 "DT_ENVIO": date.today(),
                 "DT_VALIDADE": self.__calcular_data_validade(date.today(), fluxo["NUM_DIAS"]),
                 "DESPACHO": fluxo["TEXTO_DESPACHO"],
-                "SITUACAO_TRAMIT": "E",  # TODO Certo seria só virar E quando alguém abrisse tal documento/projeto?
+                "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_ENTREGUE,
                 "IND_RETORNO_OBRIG": "F",
                 "ID_FLUXO": fluxo["ID_FLUXO"],
                 "ID_USUARIO_INFO": funcionario["ID_USUARIO"],
                 "DT_DESPACHO": date.today(),
                 "HR_DESPACHO": strftime("%H:%M:%S")
-            }
+                # TODO verificar os campos que o raul viu que estao diferentes
+            })
 
-            self.api.put(self.tramite_path, nova_tramitacao)
+            self.api.put(self.tramite_path, tramitacao)
+
             try:
                 self.atualizar_situacao_documento(documento, fluxo)
             except APIException as e:
                 raise SIEException("Não foi possível atualizar o documento", e)
 
-        except APIException as e:
-            raise SIEException("Não foi possível atualizar tramitação", e)
+        except (APIException, SIEException) as e:
+            raise SIEException("Não foi possível tramitar o documento", e)
+
+    def _marcar_tramitacao_atual_recebida(self, documento):
+        try:
+            # Pega a tramitacao atual
+            tramitacao = self.obter_tramitacao_atual(documento)
+
+            tramitacao.update({
+                "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO,
+                "DT_DESPACHO": date.today(),
+                "HR_DESPACHO": strftime("%H:%M:%S")
+                # TODO verificar os campos que o raul viu que estao diferentes
+            })
+
+            self.api.put(self.tramite_path, tramitacao)
+
+        except (APIException, SIEException) as e:
+            raise SIEException("Não foi possível tramitar o documento", e)
 
     def obter_tramitacao_atual(self, documento):
         """
@@ -237,29 +318,13 @@ class SIEDocumentoDAO(SIE):
             print "Nenhuma tramitação encontrada para o documento %d" % documento['ID_DOCUMENTO']
             raise e
 
+    @staticmethod
+    def __is_destino_fluxo_definido_externamente(fluxo):
+        return fluxo['IND_QUERY'].strip() == 'S'
+
     # ========================= Fluxos ===================================
 
-    # TODO checar com o alex se esse fluxo inicial é padrão ou varia de acordo com o tipo de documento
-    def obter_fluxo_inicial(self, documento):
-        """
-        Retorna o fluxo de acordo com a query para pegar o fluxo inicial de uma tramitacao:
-
-        “SELECT F.* FROM FLUXOS F WHERE F.SITUACAO_ATUAL = 1 AND F.IND_ATIVO = ‘S’ AND F.ID_TIPO_DOC =
-        :ID_TIPO_DOC”
-
-        :param documento:
-        :return:
-        """
-        params = {
-            "ID_TIPO_DOC": documento["ID_TIPO_DOC"],
-            "SITUACAO_ATUAL": documento["SITUACAO_ATUAL"],  # TODO Hardcodar 1?
-            "IND_ATIVO": "S",
-            "LMIN": 0,
-            "LMAX": 1
-        }
-        return self.api.get(self.fluxo_path, params).first()
-
-    def obter_fluxo_tramitacao_atual(self, documento):  # TODO verificar se isto é util
+    def obter_fluxo_tramitacao_atual(self, documento):
         """
         Retorna o fluxo de tramitacao atual do documento especificado:
 
