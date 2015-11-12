@@ -318,11 +318,10 @@ class SIEProjetos(SIE):
 
 
 class SIEAvaliacaoProjDAO(SIE):
+    path = "AVALIACOES_PROJ"
 
     def __init__(self):
         super(SIEAvaliacaoProjDAO,self).__init__()
-        self.path = "AVALIACOES_PROJ"
-
 
     def get_avaliacao(self,ano_ref,id_projeto):
         """
@@ -334,18 +333,12 @@ class SIEAvaliacaoProjDAO(SIE):
         :return: dicionário contendo informações da linha respectiva no bd
 
         """
-
         params = {
             "ID_PROJETO": id_projeto,
             "ANO_REF":ano_ref,
-            "LMIN":0,
-            "LMAX":1
         }
-        try:
-            avaliacao = self.api.get(self.path,params).first()
-            return avaliacao.first()
-        except NoContentException:
-            return None
+
+        return self.api.get_single_result(self.path,params)
 
     def documento_inicial_padrao(self,funcionario):
         #TODO Checar com o ALEX!
@@ -477,7 +470,7 @@ class SIEArquivosProj(SIE):
         return arquivo_proj
 
     def atualizar_arquivo(self,id_arquivo,params):
-        if params == None:
+        if params is None:
             raise RuntimeError # TODO SIEError?
 
         assert isinstance(params,dict)

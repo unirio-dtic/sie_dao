@@ -165,7 +165,7 @@ class SIEDocumentoDAO(SIE):
 
         try:
             # Pega a tramitacao atual
-            tramitacao = self.obter_tramitacao_atual(documento)
+            tramitacao = self.obter_tramitacao_atual(documento) # Espera uma linha de tramitação com status 'T'
         except APIException as e:
             raise SIEException("Não foi possível atualizar tramitação", e)
 
@@ -185,7 +185,7 @@ class SIEDocumentoDAO(SIE):
                 "DT_ENVIO": date.today(),
                 "DT_VALIDADE": self.__calcular_data_validade(date.today(), fluxo["NUM_DIAS"]),
                 "DESPACHO": fluxo["TEXTO_DESPACHO"],
-                "SITUACAO_TRAMIT": "E",  # TODO Certo seria só virar E quando alguém abrisse tal documento/projeto?
+                "SITUACAO_TRAMIT": "E",
                 "IND_RETORNO_OBRIG": "F",
                 "ID_FLUXO": fluxo["ID_FLUXO"],
                 "ID_USUARIO_INFO": funcionario["ID_USUARIO"],
@@ -348,6 +348,8 @@ class _NumProcessoHandler(object):
             elif mascara == "dNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
                 numero = self.__gera_numero_processo_projeto("d")
 
+            elif mascara == "NNNNNN/AAAA": # TODO usar um parser de máscar em vez dessa gambi
+                numero = self.__gera_numero_processo_avaliacao_projeto()
             else:  # interpretar a mascara
                 # TODO Criar parser para mascara para entender como gerar o numero do processo de modo generico
                 return NotImplementedError
@@ -451,4 +453,11 @@ class _NumProcessoHandler(object):
             OBS: esse metodo é temporario. Deve-se usar o parser generico. """
         num_ultimo_doc = str(self.__proximo_numero_tipo_documento()).zfill(4)  # NNNN
         num_processo = tipo + ("%s/%d" % (num_ultimo_doc, self.ano))  # _NNNN/AAAA
+        return num_processo
+
+
+    @deprecated
+    def __gera_numero_processo_avaliacao_projeto(self):
+        num_ultimo_doc = str(self.__proximo_numero_tipo_documento()).zfill(6)  # NNNNNN
+        num_processo = "%s/%d" % (num_ultimo_doc, self.ano)  # NNNNNN/AAAA
         return num_processo

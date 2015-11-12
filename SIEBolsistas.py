@@ -139,8 +139,4 @@ class SIEBolsistas(SIE):
                   "SITUACAO_BOLSISTA": self.COD_SITUACAO_ATIVO
                   }
 
-        try:
-            res = self.api.get("V_BOLSISTAS_PROJETOS", params,  cache_time=0)
-            return res.content if res is not None else []
-        except ValueError:
-            return []
+        return self.api.get_result("V_BOLSISTAS_PROJETOS", params,  cache_time=0)
