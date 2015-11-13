@@ -149,7 +149,7 @@ class SIEDocumentoDAO(SIE):
         novo_documento = {
             "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
             "SITUACAO_ATUAL": fluxo["SITUACAO_FUTURA"]
-            # incluir data de alteração? Incrementar concorrencia? 
+            # incluir data de alteração? Incrementar concorrencia?
         }
         self.api.put(self.path, novo_documento)
 
@@ -201,6 +201,7 @@ class SIEDocumentoDAO(SIE):
         tramitacao_anterior = self.obter_tramitacao_atual(documento)
 
         # só deveriamos criar um registro novo caso a tramitacao anterior estiver no estado SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO
+        # essa restrição pode conflitar com dados antigos e incosistentes
         if tramitacao_anterior["SITUACAO_TRAMIT"] != SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO:
             raise SIEException("Tramitação anterior ainda não foi processada")
 
@@ -218,7 +219,7 @@ class SIEDocumentoDAO(SIE):
             "COD_OPERADOR": documento["COD_OPERADOR"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
-            "CONCORRENCIA": tramitacao_anterior["CONCORRENCIA"] + 1,
+            "CONCORRENCIA": 0,
             "PRIORIDADE_TAB": 5101,
             "PRIORIDADE_ITEM": SIEDocumentoDAO.TRAMITACAO_PRIORIDADE_NORMAL
         }
@@ -268,7 +269,7 @@ class SIEDocumentoDAO(SIE):
                 "COD_OPERADOR": funcionario["COD_OPERADOR"],
                 "DT_ALTERACAO": date.today(),
                 "HR_ALTERACAO": strftime("%H:%M:%S"),
-                # "CONCORRENCIA": 0,  # devemos colocar zero em todos os casos?
+                "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1,
                 "ID_USUARIO_INFO": funcionario["ID_USUARIO"],
                 "DT_DESPACHO": date.today(),
                 "HR_DESPACHO": strftime("%H:%M:%S"),
@@ -290,10 +291,11 @@ class SIEDocumentoDAO(SIE):
             # Pega a tramitacao atual
             tramitacao = self.obter_tramitacao_atual(documento)
 
+            # TODO Procurar especificação do que fazer exatamente nesse passo (além de alterar SITUACAO_TRAMIT)
             tramitacao.update({
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO,
+                "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1,
 
-                # TODO Procurar especificação do que fazer exatamente nesse passo (além de alterar SITUACAO_TRAMIT)
                 # penso que talvez os campos abaixo sejam necessários
                 # "COD_OPERADOR": funcionario["COD_OPERADOR"],
                 # "DT_ALTERACAO": date.today(),
