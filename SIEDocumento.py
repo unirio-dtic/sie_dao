@@ -135,6 +135,7 @@ class SIEDocumentoDAO(SIE):
         novo_documento = {
             "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
             "SITUACAO_ATUAL": fluxo["SITUACAO_FUTURA"]
+            # incluir data de alteração? Incrementar concorrencia? 
         }
         self.api.put(self.path, novo_documento)
 
@@ -160,7 +161,6 @@ class SIEDocumentoDAO(SIE):
             "DT_ENVIO": date.today(),
             "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_AGUARDANDO,
             "IND_RETORNO_OBRIG": "N",  # Valor fixo, conforme documento da Síntese
-            # NEW!
             "COD_OPERADOR": documento["COD_OPERADOR"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
@@ -247,13 +247,18 @@ class SIEDocumentoDAO(SIE):
                 "DT_ENVIO": date.today(),
                 "DT_VALIDADE": self.__calcular_data_validade(date.today(), fluxo["NUM_DIAS"]),
                 "DESPACHO": fluxo["TEXTO_DESPACHO"],
+                "DESPACHO_RTF": fluxo["TEXTO_DESPACHO"],
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_ENTREGUE,
                 "IND_RETORNO_OBRIG": "F",
                 "ID_FLUXO": fluxo["ID_FLUXO"],
+                "COD_OPERADOR": funcionario["COD_OPERADOR"],
+                "DT_ALTERACAO": date.today(),
+                "HR_ALTERACAO": strftime("%H:%M:%S"),
+                # "CONCORRENCIA": 0,  # devemos colocar zero em todos os casos?
                 "ID_USUARIO_INFO": funcionario["ID_USUARIO"],
                 "DT_DESPACHO": date.today(),
-                "HR_DESPACHO": strftime("%H:%M:%S")
-                # TODO verificar os campos que o raul viu que estao diferentes
+                "HR_DESPACHO": strftime("%H:%M:%S"),
+                "ID_APLIC_ACAO": fluxo["ID_APLIC_ACAO"]
             })
 
             self.api.put(self.tramite_path, tramitacao)
@@ -273,9 +278,12 @@ class SIEDocumentoDAO(SIE):
 
             tramitacao.update({
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO,
-                "DT_DESPACHO": date.today(),
-                "HR_DESPACHO": strftime("%H:%M:%S")
-                # TODO verificar os campos que o raul viu que estao diferentes
+
+                # TODO Procurar especificação do que fazer exatamente nesse passo (além de alterar SITUACAO_TRAMIT)
+                # penso que talvez os campos abaixo sejam necessários
+                # "COD_OPERADOR": funcionario["COD_OPERADOR"],
+                # "DT_ALTERACAO": date.today(),
+                # "HR_ALTERACAO": strftime("%H:%M:%S")
             })
 
             self.api.put(self.tramite_path, tramitacao)
