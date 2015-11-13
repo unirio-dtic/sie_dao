@@ -14,12 +14,24 @@ __all__ = [
 
 class SIEDocumentoDAO(SIE):
 
+    # ******************************** Constantes ***********************************
+    # Valores de prioridade de documento
+
     TRAMITACAO_PRIORIDADE_NORMAL = 2
 
+    # Valores validos para SITUACAO_TRAMIT
+
     TRAMITACAO_SITUACAO_AGUARDANDO = "T"
-    """ Indica que o documento não foi enviado ainda para tramitação (aguardando) """
     TRAMITACAO_SITUACAO_ENTREGUE = "E"
     TRAMITACAO_SITUACAO_RECEBIDO = "R"
+
+    # Valores validos para IND_RETORNO_OBRIG
+
+    TRAMITACAO_IND_RETORNO_OBRIG_SIM = "S"
+    TRAMITACAO_IND_RETORNO_OBRIG_NAO = "N"
+    TRAMITACAO_IND_RETORNO_OBRIG_CONFORME_FLUXO = "F"
+
+    # Paths para busca na api
 
     path = "DOCUMENTOS"
     """ Caminho da API para trabalhar com documentos """
@@ -29,6 +41,8 @@ class SIEDocumentoDAO(SIE):
 
     fluxo_path = "FLUXOS"
     """ Caminho da API para trabalhar com fluxos de tramitacoes """
+
+    # *******************************************************************************
 
     def __init__(self):
         super(SIEDocumentoDAO, self).__init__()
@@ -160,7 +174,7 @@ class SIEDocumentoDAO(SIE):
             "ID_DESTINO": documento["ID_PROPRIETARIO"],
             "DT_ENVIO": date.today(),
             "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_AGUARDANDO,
-            "IND_RETORNO_OBRIG": "N",  # Valor fixo, conforme documento da Síntese
+            "IND_RETORNO_OBRIG": SIEDocumentoDAO.TRAMITACAO_IND_RETORNO_OBRIG_NAO,
             "COD_OPERADOR": documento["COD_OPERADOR"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
@@ -200,7 +214,7 @@ class SIEDocumentoDAO(SIE):
             "ID_DESTINO": documento["ID_PROPRIETARIO"],
             "DT_ENVIO": date.today(),
             "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_AGUARDANDO,
-            "IND_RETORNO_OBRIG": "N",
+            "IND_RETORNO_OBRIG": SIEDocumentoDAO.TRAMITACAO_IND_RETORNO_OBRIG_NAO,
             "COD_OPERADOR": documento["COD_OPERADOR"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
@@ -249,7 +263,7 @@ class SIEDocumentoDAO(SIE):
                 "DESPACHO": fluxo["TEXTO_DESPACHO"],
                 "DESPACHO_RTF": fluxo["TEXTO_DESPACHO"],
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_ENTREGUE,
-                "IND_RETORNO_OBRIG": "F",
+                "IND_RETORNO_OBRIG": SIEDocumentoDAO.TRAMITACAO_IND_RETORNO_OBRIG_CONFORME_FLUXO,
                 "ID_FLUXO": fluxo["ID_FLUXO"],
                 "COD_OPERADOR": funcionario["COD_OPERADOR"],
                 "DT_ALTERACAO": date.today(),
