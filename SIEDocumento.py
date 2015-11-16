@@ -79,7 +79,7 @@ class SIEDocumentoDAO(SIE):
 
         try:
             id_documento = self.api.post(self.path, novo_documento_params).insertId
-            novo_documento = self.api.get(self.path, {"ID_DOCUMENTO": id_documento}).first()
+            novo_documento = self.api.get_single_result(self.path, {"ID_DOCUMENTO": id_documento})
 
             # criando entrada na tabela de tramitacões (pre-etapa)
             self.__adiciona_registro_inicial_tramitacao(novo_documento)
@@ -98,12 +98,8 @@ class SIEDocumentoDAO(SIE):
         :rtype : dict
         :return: Uma dicionário correspondente a uma entrada da tabela DOCUMENTOS
         """
-        params = {
-            "ID_DOCUMENTO": id_documento,
-            "LMIN": 0,
-            "LMAX": 1
-        }
-        return self.api.get(self.path, params, cache_time=self.cacheTime).first()
+        params = {"ID_DOCUMENTO": id_documento}
+        return self.api.get_single_result(self.path, params, cache_time=self.cacheTime)
 
     def remover_documento(self, documento):
         """
@@ -202,7 +198,7 @@ class SIEDocumentoDAO(SIE):
         }
 
         id_tramitacao = self.api.post(self.tramite_path, tramitacao_params).insertId
-        tramitacao = self.api.get(self.tramite_path, {"ID_TRAMITACAO": id_tramitacao}).first()
+        tramitacao = self.api.get_single_result(self.tramite_path, {"ID_TRAMITACAO": id_tramitacao})
 
         return tramitacao
 
@@ -225,7 +221,6 @@ class SIEDocumentoDAO(SIE):
         if tramitacao_anterior["SITUACAO_TRAMIT"] != SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO:
             raise SIEException("Tramitação anterior ainda não foi processada")
 
-        # TODO conferir com o Alex e testar
         tramitacao_params = {
             "SEQUENCIA": tramitacao_anterior["SEQUENCIA"] + 1,
             "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
@@ -245,7 +240,7 @@ class SIEDocumentoDAO(SIE):
         }
 
         id_tramitacao = self.api.post(self.tramite_path, tramitacao_params).insertId
-        tramitacao = self.api.get(self.tramite_path, {"ID_TRAMITACAO": id_tramitacao}).first()  # pega uma instancia nova do banco (por segurança)
+        tramitacao = self.api.get_single_result(self.tramite_path, {"ID_TRAMITACAO": id_tramitacao})  # pega uma instancia nova do banco (por segurança)
 
         return tramitacao
 
@@ -322,7 +317,6 @@ class SIEDocumentoDAO(SIE):
             # Pega a tramitacao atual
             tramitacao = self.obter_tramitacao_atual(documento)
 
-            # TODO Procurar especificação do que fazer exatamente nesse passo (além de alterar SITUACAO_TRAMIT)
             tramitacao.update({
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO,
                 "COD_OPERADOR": funcionario["COD_OPERADOR"],
@@ -352,7 +346,7 @@ class SIEDocumentoDAO(SIE):
                 "SORT": "DESC"
             }
             # Pega a tramitacao atual
-            tramitacao = self.api.get(self.tramite_path, params).first()
+            tramitacao = self.api.get_single_result(self.tramite_path, params)
         except APIException as e:
             raise SIEException("Não foi possível obter tramitação", e)
 
@@ -394,12 +388,8 @@ class SIEDocumentoDAO(SIE):
         # obter da tabela de tramitacoes pois o fluxo pode ter sido modificado ao longo do tempo
         # isso é de contraste com obter da tabela de fluxos para termos as opcoes de fluxo mais atualizadas
         tramitacao_atual = self.obter_tramitacao_atual(documento)
-        params = {
-            "ID_FLUXO": tramitacao_atual["ID_FLUXO"],
-            "LMIN": 0,  # sera necessario?
-            "LMAX": 1   # sera necessario?
-        }
-        return self.api.get(self.fluxo_path, params).first()
+        params = {"ID_FLUXO": tramitacao_atual["ID_FLUXO"]}
+        return self.api.get_single_result(self.fluxo_path, params)
 
     def obter_proximos_fluxos_tramitacao_validos(self, documento):
         """
@@ -478,7 +468,7 @@ class _NumProcessoHandler(object):
         except Exception as e:
             raise SIEException("Erro ao gerar numero de processo.", e)
 
-    def reverter_ultimo_numero_processo(self):  # TODO testar isso
+    def reverter_ultimo_numero_processo(self):
         """ Reverte a geração do último numero de processo. """
 
         params = {"ID_TIPO_DOC": self.id_tipo_doc, "ANO_TIPO_DOC": self.ano}
@@ -494,7 +484,7 @@ class _NumProcessoHandler(object):
             raise SIEException("Não existem registros de numeros de processo para o tipo de documento " + str(self.id_tipo_doc), e)
 
     def __obter_mascara(self):
-        return self.api.get("TIPOS_DOCUMENTOS", {"ID_TIPO_DOC": self.id_tipo_doc}, ["MASCARA_TIPO_DOC"]).first()["MASCARA_TIPO_DOC"].strip()  # strip é necessário pois máscara vem com whitespaces no final(pq???).
+        return self.api.get_single_result("TIPOS_DOCUMENTOS", {"ID_TIPO_DOC": self.id_tipo_doc}, ["MASCARA_TIPO_DOC"])["MASCARA_TIPO_DOC"].strip()  # strip é necessário pois máscara vem com whitespaces no final(pq???).
 
     def __proximo_numero_tipo_documento(self):
         """
@@ -525,7 +515,7 @@ class _NumProcessoHandler(object):
         return numero
 
     def __atualizar_indicadores_default(self):
-        """ O método atualiza todos os IND_DEFAULT para N para ID_TIPO_DOC da instãncia """
+        """ O método atualiza todos os IND_DEFAULT para N para ID_TIPO_DOC da instancia """
 
         # TODO checar se precisa do ano também como parametro aqui
         numeros_documentos = self.api.get(self.path, {"ID_TIPO_DOC": self.id_tipo_doc}, ["ID_NUMERO_TIPO_DOC"])
