@@ -120,6 +120,8 @@ class SIEBolsistas(SIE):
             'LMIN': 0,
             'LMAX': 1
         }
+
+
         try:
             if self.api.get(self.path, params):
                 return True
@@ -138,5 +140,6 @@ class SIEBolsistas(SIE):
                   "CPF_COORDENADOR": cpf,
                   "SITUACAO_BOLSISTA": self.COD_SITUACAO_ATIVO
                   }
+        #TODO Verificar vigencia também ou situacao_bolsista é suficiente para caracterizar um bolsista ativo?
 
         return self.api.get_result("V_BOLSISTAS_PROJETOS", params,  cache_time=0)

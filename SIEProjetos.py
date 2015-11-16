@@ -482,6 +482,9 @@ class SIEArquivosProj(SIE):
         self.api.put(self.path,params)
 
 
+    def deletar_arquivo(self,id_arquivo):
+        self.api.delete(self.path, {"ID_ARQUIVO_PROJ": id_arquivo})
+
     @deprecated
     def salvarArquivo(self, arquivo, projeto, funcionario, TIPO_ARQUIVO_ITEM, callback=None):
         """

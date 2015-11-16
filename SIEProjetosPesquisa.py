@@ -575,8 +575,8 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         projeto = SIEProjetosPesquisa().get_projeto(id_projeto)
 
         avaliacao_default = {
-            "PERIODO_REF_TAB":self.COD_TABELA_PERIODO_AVALIACAO, # ANUAL
-            "PERIODO_REF_ITEM":self.ITEM_PERIODO_AVALIACAO_ANUAL,
+            "PERIODO_REF_TAB":self.COD_TABELA_PERIODO_AVALIACAO, # TODO PEGAR da PAR_PROD_INST..
+            "PERIODO_REF_ITEM":self.ITEM_PERIODO_AVALIACAO_ANUAL, # TODO Pegar...
             "TIPO_AVAL_TAB": self.COD_TABELA_TIPO_AVALIACAO,
             "TIPO_AVAL_ITEM": self.ITEM_TIPO_AVALIACAO_PROJETO,
             "SITUACAO_TAB": SIEProjetosPesquisa.COD_TABELA_SITUACAO,
@@ -620,8 +620,6 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
             "ID_PROJETO":candidato['projeto_pesquisa'],
             "ID_CURSO_ALUNO": candidato['id_curso_aluno'],
             "ID_PLANO_ESTUDO": id_plano_de_estudos,
-            #"STATUS": None # TODO para que serve
-            #"ID_BOLSA": None # TODO para que serve?
         }
 
         if candidato['link_lattes']:
@@ -649,6 +647,20 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
         return candidato_bolsista
 
 
+    def deletar_candidatos(self,candidatos):
+        try:
+            for candidato in candidatos:
+                params = {"ID_CANDIDATOS_BOLSISTA": candidato["ID_CANDIDATOS_BOLSISTA"]}
+
+                #Deletar linha do candidato
+                self.api.delete(self.path,params)
+                #plano de estudo relacionado.
+                SIEArquivosProj().deletar_arquivo(candidato["ID_PLANO_ESTUDO"])
+
+        except APIException as e:
+            raise SIEException("Não foi possível deletar candidato a bolsista", e)
+        return True
+
     def get_candidato_bolsista(self,**kwargs):
         """
         Retorna o candidato a bolsista, dependendo dos kwargs passados. Existem duas formas de se pegar um candidato a bolsista:
@@ -675,6 +687,22 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
         return self.api.get_single_result(self.path,params,cache_time=0)
 
 
+    def get_candidatos_bolsistas(self,cpf_coordenador):
+        """
+
+        Retorna os candidatos a bolsista atuais de um coordenador.
+
+        :param cpf_coordenador:
+        :return:
+        """
+
+        params = {
+            "CPF_COORDENADOR": cpf_coordenador,
+            "ANO_REF_AVAL": SIEParametrosDAO().parametros_prod_inst()["ANO_REF_AVAL"]
+        }
+
+        return self.api.get_result("V_CANDIDATOS_BOLSISTA_DADOS",params)
+
     def cadastra_candidato(self,candidato,ano_ref):
         """
         Cadastra candidato a bolsista no banco pela API.
@@ -694,14 +722,11 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
         candidato_bolsista = SIECandidatosBolsistasProjsPesquisa().from_candidato_item(candidato,id_plano_estudos)
         ano_ref = SIEParametrosDAO().parametros_prod_inst()["ANO_REF_AVAL"] # TODO em tese, o ano de referencia é o ano atual??
 
-        candidato_bolsista_no_banco = SIECandidatosBolsistasProjsPesquisa().get_candidato_bolsista(id_projeto=candidato['projeto_pesquisa'],id_curso_aluno=candidato['id_curso_aluno'],ano_ref=ano_ref) # TODO seria essa uma boa maneira de verificar? podia ter uma exception quando inserisse? id_projeto + id_curso_aluno?
-        if not candidato_bolsista_no_banco:
-            SIECandidatosBolsistasProjsPesquisa().cadastra_candidato(candidato_bolsista,ano_ref)
-        else:
-            raise CandidatoBolsistaExistenteException
-
-def CandidatoBolsistaExistenteException(SIEException):
-    pass
+        #TODO candidato_bolsista_no_banco = SIECandidatosBolsistasProjsPesquisa().get_candidato_bolsista(id_projeto=candidato['projeto_pesquisa'],id_curso_aluno=candidato['id_curso_aluno'],ano_ref=ano_ref) # TODO seria essa uma boa maneira de verificar? podia ter uma exception quando inserisse? id_projeto + id_curso_aluno?
+        #TODO if not candidato_bolsista_no_banco:
+        SIECandidatosBolsistasProjsPesquisa().cadastra_candidato(candidato_bolsista,ano_ref)
+        #else:
+        #    raise CandidatoBolsistaExistenteException
 
 class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
     COD_SITUACAO_ATIVO = "A"

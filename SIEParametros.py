@@ -8,4 +8,4 @@ class SIEParametrosDAO(SIE):
         super(SIEParametrosDAO, self).__init__()
 
     def parametros_prod_inst(self):
-        return self.api.get("PAR_PROD_INST",{}).first()
+        return self.api.get("PAR_PROD_INST",{},cache_time=100000).first()
