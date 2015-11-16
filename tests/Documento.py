@@ -19,8 +19,6 @@ class TestDocumento(SIETestCase):
         from sie.SIEDocumento import SIEDocumentoDAO
         self.dao = SIEDocumentoDAO()
 
-# ======================================================================================================================
-
     def test_criar_documento_projeto_pesquisa(self):
         from sie.SIEProjetosPesquisa import SIEProjetosPesquisa
         dao_projetos = SIEProjetosPesquisa()
@@ -53,7 +51,7 @@ class TestDocumento(SIETestCase):
     def test_atualizar_situacao_documento(self):
         self.fail("Test not implemented")  # TODO implement this!
 
-# ======================================================================================================================
+# === Tramitacao =======================================================================================================
 
     def test_tramitar_documento(self):
         self.fail("Test not implemented")  # TODO implement this!
@@ -67,14 +65,7 @@ class TestDocumento(SIETestCase):
     def test_remover_tramitacoes(self):
         self.fail("Test not implemented")  # TODO implement this!
 
-# ======================================================================================================================
-
-    def test_obter_fluxo_inicial(self):
-        self.assertIsInstance(self.dao.obter_fluxo_inicial(self.documento_valido), dict)
-
-    def test_obter_fluxo_inicial_doc_vazio(self):
-        with self.assertRaises(KeyError):
-            self.dao.obter_fluxo_inicial(dict())
+# === Fluxo ============================================================================================================
 
     def test_obter_fluxo_tramitacao_atual(self):
         self.assertIsInstance(self.dao.obter_fluxo_tramitacao_atual(self.documento_valido), dict)
@@ -89,5 +80,17 @@ class TestDocumento(SIETestCase):
         for obj in fluxos:
             self.assertIsInstance(obj, dict)
 
+# === _NumProcessoHandler ==============================================================================================
+
+    def test_gerar_numero_processo(self):
+        self.fail("Test not implemented")  # TODO implement this!
+
+    def test_gerar_numero_processo_documento_vazio(self):
+        self.fail("Test not implemented")  # TODO implement this!
+
+    def test_reverter_ultimo_numero_processo(self):
+        self.fail("Test not implemented")  # TODO implement this!
+
+# ======================================================================================================================
 # more TODO: implement remaining tests
 # remember to implement wrong parameters tests as well
