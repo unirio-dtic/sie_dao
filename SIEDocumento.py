@@ -117,9 +117,11 @@ class SIEDocumentoDAO(SIE):
         if response.affectedRows > 0:
             del documento
 
-    def tramitar_documento(self, documento, funcionario, fluxo, resolvedor_destino=None):  # TODO documentacao
+    def tramitar_documento(self, documento, funcionario, fluxo, resolvedor_destino=None):
         """
         Envia o documento seguindo o fluxo especificado.
+
+        Caso o fluxo especificado tenha a flag IND_QUERY='S', ou seja, o tipo_destino e id_destino devem ser obtidos através de uma query adicional, é necessário o especificar o parametro resolvedor_destino com um callable que retorna o TIPO_DESTINO e ID_DESTINO corretos.
 
         :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
         :type documento: dict
@@ -127,31 +129,47 @@ class SIEDocumentoDAO(SIE):
         :type funcionario: dict
         :param fluxo: Um dicionário referente a uma entrada na tabela FLUXOS
         :type fluxo: dict
-        :param resolvedor_destino é um callable que resolve o destino dado um fluxo que tenha a flag IND_QUERY='S', ou seja, o tipo_destino e id_destino devem ser obtidos através de uma query adicional. O retorno deve ser uma tupla (tipo_destino, id_destino).
+        :param resolvedor_destino: Um callable que recebe um parametro "fluxo" e retorna uma tupla (tipo_destino, id_destino)
         :type resolvedor_destino: callable
-        :rtype : dict
         """
         # No SIE, tramitar documento é atualizar a situação da tramitacao (e outros campos) e definir o fluxo dela
         self._marcar_tramitacao_atual_entregue(documento, funcionario, fluxo, resolvedor_destino)
 
-    def receber_documento(self, documento):  # TODO melhorar documentacao
+    def receber_documento(self, documento, funcionario):
         """
-        Marca o documento como recebido.
+        Marca o documento como recebido pela instituição destinatária da tramitação atual do documento.
+
+        Normalmente esse método deve ser usado para emular a abertura da tramitação através da caixa postal do SIE.
+
 
         :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
         :type documento: dict
-        :return:
+        :param funcionario: Um dicionário referente a uma entrada na view V_FUNCIONARIO_IDS
+        :type funcionario: dict
         """
-        self._marcar_tramitacao_atual_recebida(documento)
+        self._marcar_tramitacao_atual_recebida(funcionario, documento)
         self._criar_registro_tramitacao(documento)
 
-    def atualizar_situacao_documento(self, documento, fluxo):  # TODO documentacao
-        novo_documento = {
+    def atualizar_situacao_documento(self, documento, fluxo, funcionario):
+        """
+        Atualiza o documento na tabela com os dados do fluxo especificado. Normalmente chamado apos uma tramitação for concluida.
+
+        :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
+        :type documento: dict
+        :param funcionario: Um dicionário referente a uma entrada na view V_FUNCIONARIO_IDS
+        :type funcionario: dict
+        :param fluxo: Um dicionário referente a uma entrada na tabela FLUXOS
+        :type fluxo: dict
+         """
+        documento_atualizado = {
             "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
-            "SITUACAO_ATUAL": fluxo["SITUACAO_FUTURA"]
-            # incluir data de alteração? Incrementar concorrencia?
+            "SITUACAO_ATUAL": fluxo["SITUACAO_FUTURA"],
+            "COD_OPERADOR": funcionario["COD_OPERADOR"],
+            "DT_ALTERACAO": date.today(),
+            "HR_ALTERACAO": strftime("%H:%M:%S"),
+            "CONCORRENCIA": documento["CONCORRENCIA"] + 1
         }
-        self.api.put(self.path, novo_documento)
+        self.api.put(self.path, documento_atualizado)
 
     # ========================= Tramitacao ===================================
 
@@ -194,7 +212,9 @@ class SIEDocumentoDAO(SIE):
 
         :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
         :type documento: dict
-        :return:
+        :return: Retorna a linha de tramitacao recem criada
+        :rtype: dict
+        :raises SIEException
         """
 
         # pegar a mais recente do documento
@@ -241,12 +261,12 @@ class SIEDocumentoDAO(SIE):
         :type fluxo: dict
         :param resolvedor_destino é um callable que resolve o destino dado um fluxo que tenha a flag IND_QUERY='S', ou seja, o tipo_destino e id_destino devem ser obtidos através de uma query adicional. O retorno deve ser uma tupla (tipo_destino, id_destino).
         :type resolvedor_destino: callable
-        :rtype : dict
+        :raises SIEException
         """
 
         try:
             # Pega a tramitacao atual
-            tramitacao = self.obter_tramitacao_atual(documento) # Espera uma linha de tramitação com status 'T'
+            tramitacao = self.obter_tramitacao_atual(documento)  # Espera uma linha de tramitação com status 'T'
 
             if self.__is_destino_fluxo_definido_externamente(fluxo):
                 if not resolvedor_destino:
@@ -279,14 +299,25 @@ class SIEDocumentoDAO(SIE):
             self.api.put(self.tramite_path, tramitacao)
 
             try:
-                self.atualizar_situacao_documento(documento, fluxo)
+                self.atualizar_situacao_documento(documento, fluxo, funcionario)
             except APIException as e:
                 raise SIEException("Não foi possível atualizar o documento", e)
 
         except (APIException, SIEException) as e:
             raise SIEException("Não foi possível tramitar o documento", e)
 
-    def _marcar_tramitacao_atual_recebida(self, documento):
+    def _marcar_tramitacao_atual_recebida(self, funcionario, documento):
+        """
+        Marca o documento como recebido na tramitacao atual do documento
+
+        Esse método deve ser usado para emular a abertura da tramitação através da caixa postal do SIE.
+
+        :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
+        :type documento: dict
+        :param funcionario: Um dicionário referente a uma entrada na view V_FUNCIONARIO_IDS
+        :type funcionario: dict
+        :raises SIEException
+        """
         try:
             # Pega a tramitacao atual
             tramitacao = self.obter_tramitacao_atual(documento)
@@ -294,12 +325,10 @@ class SIEDocumentoDAO(SIE):
             # TODO Procurar especificação do que fazer exatamente nesse passo (além de alterar SITUACAO_TRAMIT)
             tramitacao.update({
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO,
-                "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1,
-
-                # penso que talvez os campos abaixo sejam necessários
-                # "COD_OPERADOR": funcionario["COD_OPERADOR"],
-                # "DT_ALTERACAO": date.today(),
-                # "HR_ALTERACAO": strftime("%H:%M:%S")
+                "COD_OPERADOR": funcionario["COD_OPERADOR"],
+                "DT_ALTERACAO": date.today(),
+                "HR_ALTERACAO": strftime("%H:%M:%S"),
+                "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1
             })
 
             self.api.put(self.tramite_path, tramitacao)
@@ -314,6 +343,7 @@ class SIEDocumentoDAO(SIE):
         :type documento: dict
         :return: Uma dicionário correspondente a uma entrada da tabela TRAMITACOES
         :rtype : dict
+        :raises SIEException
         """
         try:
             params = {
@@ -333,6 +363,7 @@ class SIEDocumentoDAO(SIE):
         Dado um documento, a função busca e remove suas tramitações. Use com cautela.
         :type documento: dict
         :param documento: Um dicionário contendo uma entrada da tabela DOCUMENTOS
+        :raises SIEException
         """
         try:
             tramitacoes = self.api.get(self.tramite_path, {"ID_DOCUMENTO": documento['ID_DOCUMENTO']}, ['ID_TRAMITACAO'])
@@ -418,6 +449,7 @@ class _NumProcessoHandler(object):
 
         :rtype : str
         :return: Retorna o NUM_PROCESSO gerado a partir da lógica de negócio
+        :raises SIEException
         """
         try:
             try:
@@ -437,7 +469,7 @@ class _NumProcessoHandler(object):
             elif mascara == "dNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
                 numero = self.__gera_numero_processo_projeto("d")
 
-            elif mascara == "NNNNNN/AAAA": # TODO usar um parser de máscar em vez dessa gambi
+            elif mascara == "NNNNNN/AAAA":  # TODO usar um parser de máscar em vez dessa gambi
                 numero = self.__gera_numero_processo_avaliacao_projeto()
             else:  # interpretar a mascara
                 # TODO Criar parser para mascara para entender como gerar o numero do processo de modo generico
@@ -471,6 +503,7 @@ class _NumProcessoHandler(object):
         caso contrário, uma nova entrada será criada.
 
         :rtype : int
+        :raises SIEException
         """
 
         params = {"ID_TIPO_DOC": self.id_tipo_doc, "ANO_TIPO_DOC": self.ano}
@@ -543,7 +576,6 @@ class _NumProcessoHandler(object):
         num_ultimo_doc = str(self.__proximo_numero_tipo_documento()).zfill(4)  # NNNN
         num_processo = tipo + ("%s/%d" % (num_ultimo_doc, self.ano))  # _NNNN/AAAA
         return num_processo
-
 
     @deprecated
     def __gera_numero_processo_avaliacao_projeto(self):
