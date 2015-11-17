@@ -17,7 +17,7 @@ class TestDocumento(SIETestCase):
 
     def setUp(self):
         from sie.SIEDocumento import SIEDocumentoDAO
-        self.dao = SIEDocumentoDAO()
+        self.dao = SIEDocumentoDAO(self.funcionario_dummy)
 
     def test_criar_documento_projeto_pesquisa(self):
         from sie.SIEProjetosPesquisa import SIEProjetosPesquisa
