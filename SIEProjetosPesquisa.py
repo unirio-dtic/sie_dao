@@ -10,6 +10,7 @@ from pydal.objects import Row
 from datetime import date, datetime
 import collections
 
+
 class SIEProjetosPesquisa(SIEProjetos):
     """
     Classe que representa os projetos de pesquisa
@@ -47,7 +48,6 @@ class SIEProjetosPesquisa(SIEProjetos):
     ITEM_FUNCOES_ORGAOS_AGENCIA_FOMENTO = 4
     ITEM_ESTADO_REGULAR = 1
 
-
     TEMPO_ISENCAO_RELATORIO = 8 # tempo que é dado de isenção entre cadastro e cobrança de relatório.
 
     TIPO_DOCUMENTO = 217
@@ -71,7 +71,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             'LMIN': 0,
             'LMAX': 1,
             'ORDERBY': 'ID_ORGAO_PROJETO',
-            "SORT":'ASC'
+            "SORT": 'ASC'
         }
 
         try:
@@ -88,16 +88,18 @@ class SIEProjetosPesquisa(SIEProjetos):
                                                          tipo_arquivo=SIEArquivosProj.ITEM_TIPO_ARQUIVO_RELATORIO_DOCENTE)
 
         documento_avaliacao = SIEAvaliacaoProjsPesquisaDAO().documento_inicial_padrao(funcionario)
-        documento = SIEDocumentoDAO().criar_documento(documento_avaliacao) # PASSO 1
+        documento = SIEDocumentoDAO(funcionario).criar_documento(documento_avaliacao)  # PASSO 1
 
-        #cria avaliacao para o arquivo
+        # cria avaliacao para o arquivo
         avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,params_projeto)
 
-        #atualizar ref tabela de arquivos.
-        SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"],{"ID_AVALIACAO_PROJ":avaliacao["ID_AVALIACAO_PROJ"]})
+        # atualizar ref tabela de arquivos.
+        SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"], {"ID_AVALIACAO_PROJ": avaliacao["ID_AVALIACAO_PROJ"]})
+
+        fluxo = SIEDocumentoDAO().obter_fluxo_inicial(documento)
 
         # tramita para a câmara
-        SIEDocumentoDAO().tramitar_documento(documento, funcionario, fluxo=None,resolvedor_destino=None)
+        SIEDocumentoDAO(funcionario).tramitar_documento(documento, fluxo)
 
     def registrar_projeto(self, id_projeto, funcionario):
         """
@@ -107,13 +109,14 @@ class SIEProjetosPesquisa(SIEProjetos):
         """
 
         documento_projeto = self.documento_inicial_padrao(funcionario)
-        documento = SIEDocumentoDAO().criar_documento(documento_projeto) # PASSO 1
+        documento = SIEDocumentoDAO(funcionario).criar_documento(documento_projeto)  # PASSO 1
 
         # marcando a maneira de lidar com o fluxo caso o destino esteja em uma query (IND_QUERY='S')
-        #resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo, id_projeto) # Era usado anteriormente. Deixando aqui pois pode server para depois.
+        # resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo, id_projeto) # Era usado anteriormente. Deixando aqui pois pode server para depois.
 
         # faz a primeira tramitação
-        SIEDocumentoDAO().tramitar_documento(documento, funcionario, fluxo=None,resolvedor_destino=None)
+        fluxo = SIEDocumentoDAO().obter_fluxo_inicial(documento)
+        SIEDocumentoDAO(funcionario).tramitar_documento(documento, fluxo)
 
         projeto = {
             "ID_PROJETO": id_projeto,
@@ -262,7 +265,6 @@ class SIEProjetosPesquisa(SIEProjetos):
             return True
         return False
 
-
     def get_lista_opcoes_titulacao(self):
         """
         :return: lista contendo listas ("CodOpcao","NomeOpcao")
@@ -358,18 +360,16 @@ class SIEProjetosPesquisa(SIEProjetos):
         except ValueError:
             return {}
 
-    def get_projetos_pode_pedir_bolsista(self,cpf_coordenador): # TODO possivelmente atrelado a uma instancia de algum modelo de coordenador
-        projetos_possiveis = self.get_projetos(cpf_coordenador=cpf_coordenador,situacoes=[self.ITEM_SITUACAO_ANDAMENTO,self.ITEM_SITUACAO_TRAMITE_REGISTRO])
+    def get_projetos_pode_pedir_bolsista(self, cpf_coordenador):  # TODO possivelmente atrelado a uma instancia de algum modelo de coordenador
+        projetos_possiveis = self.get_projetos(cpf_coordenador=cpf_coordenador, situacoes=[self.ITEM_SITUACAO_ANDAMENTO, self.ITEM_SITUACAO_TRAMITE_REGISTRO])
 
-        #Filtra os que tão sem id_documento (ainda não tramitados)
-        return filter(lambda projeto: projeto["ID_DOCUMENTO"] is not None, projetos_possiveis) # TODO tem como fazer sem ser por aqui? checar is not null pela API?
+        # Filtra os que tão sem id_documento (ainda não tramitados)
+        return filter(lambda projeto: projeto["ID_DOCUMENTO"] is not None, projetos_possiveis)  # TODO tem como fazer sem ser por aqui? checar is not null pela API?
 
+    def get_projetos_em_andamento(self, cpf_coordenador):
+        return self.get_projetos(cpf_coordenador, self.ITEM_SITUACAO_ANDAMENTO)
 
-    def get_projetos_em_andamento(self,cpf_coordenador):
-        return self.get_projetos(cpf_coordenador,self.ITEM_SITUACAO_ANDAMENTO)
-
-
-    def get_projetos(self, cpf_coordenador=None,situacoes=None):
+    def get_projetos(self, cpf_coordenador=None, situacoes=None):
 
         params = {
             "LMIN": 0,
@@ -382,14 +382,13 @@ class SIEProjetosPesquisa(SIEProjetos):
             })
         if situacoes:
             if isinstance(situacoes, collections.Iterable) and len(situacoes) > 1:
-                params.update({"SITUACAO_ITEM_SET":situacoes})
+                params.update({"SITUACAO_ITEM_SET": situacoes})
             elif isinstance(situacoes, collections.Iterable):
-                params.update({"SITUACAO_ITEM": situacoes[0]}) # TODO AttributeError?
+                params.update({"SITUACAO_ITEM": situacoes[0]})  # TODO AttributeError?
             else:
-                params.update({"SITUACAO_ITEM":situacoes})
+                params.update({"SITUACAO_ITEM": situacoes})
 
-        return self.api.get_result("V_PROJETOS_PESQUISA", params, cache_time=0)
-
+        return self.api.get("V_PROJETOS_PESQUISA", params, cache_time=0, bypass_no_content_exception=True)
 
     def get_coordenador(self, id_projeto):
         """
@@ -414,7 +413,6 @@ class SIEProjetosPesquisa(SIEProjetos):
         :return:
         """
         pass
-
 
     def is_pendente(self,id_projeto):
         """
@@ -445,6 +443,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             if ha_avaliacao:
                 return False
             return True
+
 
 class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
     COD_SITUACAO_ATIVO = "A"
@@ -563,15 +562,11 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
 
 class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
 
-
     COD_TABELA_TIPO_AVALIACAO = 6016
     ITEM_TIPO_AVALIACAO_PROJETO = 1
 
-
-
     def __init__(self):
         super(SIEAvaliacaoProjDAO,self).__init__()
-
 
     def _resolve_situacao_avaliacao(self,situacao_projeto,prorrogacao):
         """Resolve o valor da coluna 'SITUACAO_ITEM' da avaliação a ser criada.
@@ -591,35 +586,31 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         else:
             return situacao_projeto
 
-
-
     def criar_avaliacao(self,id_projeto,documento,params_projeto_pesquisa,prorrogacao=False):
-        '''
-
+        """
         :param id_projeto:
         :param documento:
         :param params_projeto_pesquisa:
         :param prorrogacao:
         :return:
-        '''
-
+        """
         projeto = SIEProjetosPesquisa().get_projeto(id_projeto)
 
         avaliacao_default = {
-            "PERIODO_REF_TAB":params_projeto_pesquisa["PERIODO_REF_TAB"],
-            "PERIODO_REF_ITEM":params_projeto_pesquisa["PERIODO_REF_ITEM"],
+            "PERIODO_REF_TAB": params_projeto_pesquisa["PERIODO_REF_TAB"],
+            "PERIODO_REF_ITEM": params_projeto_pesquisa["PERIODO_REF_ITEM"],
             "TIPO_AVAL_TAB": self.COD_TABELA_TIPO_AVALIACAO,
             "TIPO_AVAL_ITEM": self.ITEM_TIPO_AVALIACAO_PROJETO,
             "SITUACAO_TAB": SIEProjetosPesquisa.COD_TABELA_SITUACAO,
             "SITUACAO_ITEM": self._resolve_situacao_avaliacao(projeto['SITUACAO_ITEM'],prorrogacao),
-            "ANO_REF":params_projeto_pesquisa["ANO_REF_AVAL"]  # TODO  em tese, o ano de referencia é o ano atual de avaliação, pois nenhum projeto pode pedir bolsas sem estar 'em andamento' e para estar 'em andamento' os relatórios não podem estar atrasados -> só falta o relatório atual
+            "ANO_REF": params_projeto_pesquisa["ANO_REF_AVAL"]  # TODO  em tese, o ano de referencia é o ano atual de avaliação, pois nenhum projeto pode pedir bolsas sem estar 'em andamento' e para estar 'em andamento' os relatórios não podem estar atrasados -> só falta o relatório atual
 
         }
 
         avaliacao_default.update({
-            "ID_PROJETO":id_projeto,
-            "ID_DOCUMENTO":documento['ID_DOCUMENTO'],
-            "NUM_PROCESSO":documento["NUM_PROCESSO"]
+            "ID_PROJETO": id_projeto,
+            "ID_DOCUMENTO": documento['ID_DOCUMENTO'],
+            "NUM_PROCESSO": documento["NUM_PROCESSO"]
         })
 
         try:
@@ -638,9 +629,9 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
     path = "CANDIDATOS_BOLSISTA"
 
     def __init__(self):
-        super(SIECandidatosBolsistasProjsPesquisa,self).__init__()
+        super(SIECandidatosBolsistasProjsPesquisa, self).__init__()
 
-    def from_candidato_item(self, candidato,id_plano_de_estudos):
+    def from_candidato_item(self, candidato, id_plano_de_estudos):
         """
         Monta candidato a ser inserido no banco de dados a partir da instancia guardada dos formulários anteriores na session
         :param candidato:
@@ -648,7 +639,7 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
         """
 
         candidato_bolsista = {
-            "ID_PROJETO":candidato['projeto_pesquisa'],
+            "ID_PROJETO": candidato['projeto_pesquisa'],
             "ID_CURSO_ALUNO": candidato['id_curso_aluno'],
             "ID_PLANO_ESTUDO": id_plano_de_estudos,
         }
@@ -677,15 +668,14 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
         # }
         return candidato_bolsista
 
-
     def deletar_candidatos(self,candidatos):
         try:
             for candidato in candidatos:
                 params = {"ID_CANDIDATOS_BOLSISTA": candidato["ID_CANDIDATOS_BOLSISTA"]}
 
-                #Deletar linha do candidato
+                # Deletar linha do candidato
                 self.api.delete(self.path,params)
-                #plano de estudo relacionado.
+                # plano de estudo relacionado.
                 SIEArquivosProj().deletar_arquivo(candidato["ID_PLANO_ESTUDO"])
 
         except APIException as e:
@@ -717,8 +707,7 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
 
         return self.api.get_single_result(self.path,params,cache_time=0)
 
-
-    def get_candidatos_bolsistas(self,cpf_coordenador):
+    def get_candidatos_bolsistas(self, cpf_coordenador):
         """
 
         Retorna os candidatos a bolsista atuais de um coordenador.
@@ -732,7 +721,7 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
             "ANO_REF_AVAL": SIEParametrosDAO().parametros_prod_inst()["ANO_REF_AVAL"]
         }
 
-        return self.api.get_result("V_CANDIDATOS_BOLSISTA_DADOS",params)
+        return self.api.get("V_CANDIDATOS_BOLSISTA_DADOS", params, bypass_no_content_exception=True)
 
     def cadastra_candidato(self,candidato,ano_ref):
         """
@@ -747,17 +736,17 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
         })
         return self.api.post(self.path, candidato)
 
-
     def inserir_candidato_bolsista(self,candidato,id_plano_estudos):
 
         candidato_bolsista = SIECandidatosBolsistasProjsPesquisa().from_candidato_item(candidato,id_plano_estudos)
         ano_ref = SIEParametrosDAO().parametros_prod_inst()["ANO_REF_AVAL"] # TODO em tese, o ano de referencia é o ano atual??
 
-        #TODO candidato_bolsista_no_banco = SIECandidatosBolsistasProjsPesquisa().get_candidato_bolsista(id_projeto=candidato['projeto_pesquisa'],id_curso_aluno=candidato['id_curso_aluno'],ano_ref=ano_ref) # TODO seria essa uma boa maneira de verificar? podia ter uma exception quando inserisse? id_projeto + id_curso_aluno?
-        #TODO if not candidato_bolsista_no_banco:
+        # TODO candidato_bolsista_no_banco = SIECandidatosBolsistasProjsPesquisa().get_candidato_bolsista(id_projeto=candidato['projeto_pesquisa'],id_curso_aluno=candidato['id_curso_aluno'],ano_ref=ano_ref) # TODO seria essa uma boa maneira de verificar? podia ter uma exception quando inserisse? id_projeto + id_curso_aluno?
+        # TODO if not candidato_bolsista_no_banco:
         SIECandidatosBolsistasProjsPesquisa().cadastra_candidato(candidato_bolsista,ano_ref)
-        #else:
+        # else:
         #    raise CandidatoBolsistaExistenteException
+
 
 class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
     COD_SITUACAO_ATIVO = "A"
@@ -766,7 +755,6 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
 
     def __init__(self):
         super(SIEParticipantesProjsPesquisa, self).__init__()
-
 
     def cadastra_participante(self, participante):
         """
@@ -846,7 +834,6 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
         except NoContentException:
             return None
 
-
     # def get_participante_candidato_bolsista(self, id_projeto, id_pessoa):
     #     """
     #     Retorna dicionário com o participante de id_projeto e id_pessoa.
@@ -864,7 +851,6 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
     #         return res.content[0] if res is not None else None
     #     except ValueError:
     #         return None
-
 
     def from_form(self, form):
         """
