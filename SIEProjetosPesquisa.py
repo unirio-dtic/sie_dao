@@ -31,6 +31,9 @@ class SIEProjetosPesquisa(SIEProjetos):
     ITEM_TIPO_PUBLICO_3_GRAU = 8  # => 3o grau
     ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE = 1  # => Não-avaliado
     ITEM_CLASSIFICACAO_PROJETO_PESQUISA = 39718
+
+    ITEM_SITUACAO_SUSPENSO = 4
+    ITEM_SITUACAO_RENOVADO = 6
     ITEM_SITUACAO_TRAMITE_REGISTRO = 8
     ITEM_SITUACAO_ANDAMENTO = 2
     # TODO Ter estes parâmetros HARD-CODED é uma limitação.
@@ -77,7 +80,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         except (NoContentException,ValueError):
             return None
 
-    def enviar_relatorio_docente(self, relatorio,funcionario,ano_ref):
+    def enviar_relatorio_docente(self, relatorio,funcionario,params_projeto):
 
         arquivo_salvo = SIEArquivosProj().salvar_arquivo(nome_arquivo=relatorio.filename,
                                                          arquivo=relatorio.arquivo,
@@ -88,7 +91,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         documento = SIEDocumentoDAO().criar_documento(documento_avaliacao) # PASSO 1
 
         #cria avaliacao para o arquivo
-        avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,ano_ref)
+        avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,params_projeto)
 
         #atualizar ref tabela de arquivos.
         SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"],{"ID_AVALIACAO_PROJ":avaliacao["ID_AVALIACAO_PROJ"]})
@@ -560,34 +563,60 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
 
 class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
 
-    COD_TABELA_PERIODO_AVALIACAO = 608
-    COD_TABELA_TIPO_AVALIACAO = 6016
 
-    ITEM_PERIODO_AVALIACAO_ANUAL = 100
+    COD_TABELA_TIPO_AVALIACAO = 6016
     ITEM_TIPO_AVALIACAO_PROJETO = 1
+
+
 
     def __init__(self):
         super(SIEAvaliacaoProjDAO,self).__init__()
 
 
-    def criar_avaliacao(self,id_projeto,documento,ano_ref):
+    def _resolve_situacao_avaliacao(self,situacao_projeto,prorrogacao):
+        """Resolve o valor da coluna 'SITUACAO_ITEM' da avaliação a ser criada.
+        TODO Existem casos não previstos?
+        :param situacao_projeto: conteudo da coluna 'SITUACAO_ITEM' da tabela PROJETOS
+        :type situacao_projeto: int
+        :param prorrogacao: booleano que indica se o usuário pediu ou não prorrogação da vigencia do projeto.
+        :type: prorrogacao: int
+        :returns: A situação que deve ser utilizada.
+        :rtype: int
+        """
 
+        if situacao_projeto==SIEProjetosPesquisa.ITEM_SITUACAO_SUSPENSO:
+            return SIEProjetosPesquisa.ITEM_SITUACAO_ANDAMENTO
+        elif prorrogacao:
+            return SIEProjetosPesquisa.ITEM_SITUACAO_RENOVADO
+        else:
+            return situacao_projeto
+
+
+
+    def criar_avaliacao(self,id_projeto,documento,params_projeto_pesquisa,prorrogacao=False):
+        '''
+
+        :param id_projeto:
+        :param documento:
+        :param params_projeto_pesquisa:
+        :param prorrogacao:
+        :return:
+        '''
         projeto = SIEProjetosPesquisa().get_projeto(id_projeto)
 
         avaliacao_default = {
-            "PERIODO_REF_TAB":self.COD_TABELA_PERIODO_AVALIACAO, # TODO PEGAR da PAR_PROD_INST..
-            "PERIODO_REF_ITEM":self.ITEM_PERIODO_AVALIACAO_ANUAL, # TODO Pegar...
+            "PERIODO_REF_TAB":params_projeto_pesquisa["PERIODO_REF_TAB"],
+            "PERIODO_REF_ITEM":params_projeto_pesquisa["PERIODO_REF_ITEM"],
             "TIPO_AVAL_TAB": self.COD_TABELA_TIPO_AVALIACAO,
             "TIPO_AVAL_ITEM": self.ITEM_TIPO_AVALIACAO_PROJETO,
             "SITUACAO_TAB": SIEProjetosPesquisa.COD_TABELA_SITUACAO,
-            "SITUACAO_ITEM": projeto['SITUACAO_ITEM'] # TODO recebe qual situação ??? Por ora recebe a situação atual do projeto
-
+            "SITUACAO_ITEM": self._resolve_situacao_avaliacao(projeto['SITUACAO_ITEM'],prorrogacao),
+            "ANO_REF":params_projeto_pesquisa["ANO_REF_AVAL"]
         }
 
         avaliacao_default.update({
             "ID_PROJETO":id_projeto,
             "ID_DOCUMENTO":documento['ID_DOCUMENTO'],
-            "ANO_REF":ano_ref,
             "NUM_PROCESSO":documento["NUM_PROCESSO"]
         })
 
