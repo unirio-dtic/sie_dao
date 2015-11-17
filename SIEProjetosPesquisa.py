@@ -579,7 +579,7 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         :param situacao_projeto: conteudo da coluna 'SITUACAO_ITEM' da tabela PROJETOS
         :type situacao_projeto: int
         :param prorrogacao: booleano que indica se o usuário pediu ou não prorrogação da vigencia do projeto.
-        :type: prorrogacao: int
+        :type prorrogacao: bool
         :returns: A situação que deve ser utilizada.
         :rtype: int
         """
@@ -602,6 +602,7 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         :param prorrogacao:
         :return:
         '''
+
         projeto = SIEProjetosPesquisa().get_projeto(id_projeto)
 
         avaliacao_default = {
@@ -611,7 +612,8 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
             "TIPO_AVAL_ITEM": self.ITEM_TIPO_AVALIACAO_PROJETO,
             "SITUACAO_TAB": SIEProjetosPesquisa.COD_TABELA_SITUACAO,
             "SITUACAO_ITEM": self._resolve_situacao_avaliacao(projeto['SITUACAO_ITEM'],prorrogacao),
-            "ANO_REF":params_projeto_pesquisa["ANO_REF_AVAL"]
+            "ANO_REF":params_projeto_pesquisa["ANO_REF_AVAL"]  # TODO  em tese, o ano de referencia é o ano atual de avaliação, pois nenhum projeto pode pedir bolsas sem estar 'em andamento' e para estar 'em andamento' os relatórios não podem estar atrasados -> só falta o relatório atual
+
         }
 
         avaliacao_default.update({
