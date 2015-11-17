@@ -46,7 +46,7 @@ class SIEDocumentoDAO(SIE):
 
     def __init__(self, operador=None):
         """
-        :param operador: Um dicionario referente a uma entrada na view V_FUNCIONARIO_IDS. Corresponde ao operador do sistema.
+        :param operador: Um dicionario referente a uma entrada na view V_FUNCIONARIO_IDS. Corresponde ao operador do sistema. Pode ser omitido se apenas os metodos de consulta forem utilizados.
         :type operador: dict
         """
         super(SIEDocumentoDAO, self).__init__()
