@@ -159,7 +159,7 @@ class SIEDocumentoDAO(SIE):
         documento_atualizado = {
             "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
             "SITUACAO_ATUAL": fluxo["SITUACAO_FUTURA"],
-            "COD_OPERADOR": self.operador["COD_OPERADOR"],
+            "COD_OPERADOR": self.operador["ID_USUARIO"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
             "CONCORRENCIA": documento["CONCORRENCIA"] + 1
@@ -279,7 +279,7 @@ class SIEDocumentoDAO(SIE):
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_ENTREGUE,
                 "IND_RETORNO_OBRIG": SIEDocumentoDAO.TRAMITACAO_IND_RETORNO_OBRIG_CONFORME_FLUXO,
                 "ID_FLUXO": fluxo["ID_FLUXO"],
-                "COD_OPERADOR": funcionario["COD_OPERADOR"],
+                "COD_OPERADOR": funcionario["ID_USUARIO"],
                 "DT_ALTERACAO": date.today(),
                 "HR_ALTERACAO": strftime("%H:%M:%S"),
                 "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1,
@@ -314,7 +314,7 @@ class SIEDocumentoDAO(SIE):
             tramitacao = self.obter_tramitacao_atual(documento)
             tramitacao.update({
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO,
-                "COD_OPERADOR": self.operador["COD_OPERADOR"],
+                "COD_OPERADOR": self.operador["ID_USUARIO"],
                 "DT_ALTERACAO": date.today(),
                 "HR_ALTERACAO": strftime("%H:%M:%S"),
                 "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1
@@ -527,7 +527,7 @@ class _NumProcessoHandler(object):
         :raises SIEException
         """
         params = {"ID_TIPO_DOC": self.id_tipo_doc, "ANO_TIPO_DOC": self.ano}
-        fields = ["ID_NUMERO_TIPO_DOC", "NUM_ULTIMO_DOC"]
+        fields = ["ID_NUMERO_TIPO_DOC", "NUM_ULTIMO_DOC", "CONCORRENCIA"]
 
         try:
             numero_tipo_doc = self.api.get_single_result(self.path, params, fields)
