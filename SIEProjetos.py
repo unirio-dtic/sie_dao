@@ -1,12 +1,8 @@
 # coding=utf-8
 
 import base64
-from datetime import date, datetime
+from datetime import date
 from deprecate import deprecated
-
-# TODO remover a dependencia do current (chamadas à session.current.flash),
-# TODO pra isso, lançar exceções mais significativas para serem tratadas acima
-from gluon import current
 
 from sie import SIE
 from sie.SIEBolsistas import SIEBolsas, SIEBolsistas
@@ -15,7 +11,11 @@ from sie.SIEFuncionarios import SIEFuncionarios
 from sie.SIETabEstruturada import SIETabEstruturada
 
 from unirio.api.result import APIException
-from unirio.api.exceptions import NoContentException,NullParameterException
+from unirio.api.exceptions import NoContentException
+
+# TODO remover a dependencia do current (chamadas à session.current.flash),
+# TODO pra isso, lançar exceções mais significativas para serem tratadas acima
+from gluon import current
 
 # try:
 #     db_driver_module = __import__(current.db._adapter.driver_name)
@@ -59,10 +59,7 @@ class SIEProjetos(SIE):
             'ID_PROJETO': ID_PROJETO
         }
 
-        try:
-            return self.api.get(self.path, params, cache_time=0).first()
-        except NoContentException:
-            return None
+        return self.api.get_single_result(self.path, params, cache_time=0)
 
     def getProjetoDados(self, ID_PROJETO):
         """
@@ -189,7 +186,7 @@ class SIEProjetos(SIE):
         :param projeto: Dicionário correspondente a uma entrada na tabela PROJETOS
         :rtype bool
         """
-        #TODO discituir se usar uma lista estática é uma solução aceitável ou se deveria ser realizada uma consulta na TAB_ESTRUTURADA
+        # TODO discituir se usar uma lista estática é uma solução aceitável ou se deveria ser realizada uma consulta na TAB_ESTRUTURADA
         if projeto["SITUACAO_ITEM"] in range(1, 10):
             return True
 
@@ -338,7 +335,7 @@ class SIEAvaliacaoProjDAO(SIE):
             "ANO_REF":ano_ref,
         }
 
-        return self.api.get_single_result(self.path,params)
+        return self.api.get_single_result(self.path, params, bypass_no_content_exception=True)
 
     def documento_inicial_padrao(self,funcionario):
         #TODO Checar com o ALEX!
@@ -724,8 +721,6 @@ class SIEParticipantesProjs(SIE):
         :type FUNCAO_ITEM: int
         :param FUNCAO_ITEM: Identificador úncio de uma descrição de função. Identificadores possíveis podem ser
                             encontrados na TAB_ESTRUTURADA, COD_TABELA 6003
-        :type pessoa: dict
-        :param pessoa: Dicionário contendo dados
         :rtype : unirio.api.apiresult.APIPostResponse
         """
         participante.update({
