@@ -17,12 +17,12 @@ class TestDocumento(SIETestCase):
 
     def setUp(self):
         from sie.SIEDocumento import SIEDocumentoDAO
-        self.dao = SIEDocumentoDAO(self.funcionario_dummy)
+        self.dao = SIEDocumentoDAO()
 
     def test_criar_documento_projeto_pesquisa(self):
         from sie.SIEProjetosPesquisa import SIEProjetosPesquisa
         dao_projetos = SIEProjetosPesquisa()
-        documento = self.dao.criar_documento(dao_projetos.documento_inicial_padrao(self.funcionario_dummy))
+        documento = self.dao.criar_documento(self.funcionario_dummy, dao_projetos.documento_inicial_padrao(self.funcionario_dummy))
         self.assertIsInstance(documento, dict)
         self.dao.remover_documento(documento)  # clean poopie
 
@@ -30,7 +30,7 @@ class TestDocumento(SIETestCase):
         with self.assertRaises(KeyError):
             from sie.SIEProjetos import SIEProjetos
             dao_projetos = SIEProjetos()
-            documento = self.dao.criar_documento(dict())
+            documento = self.dao.criar_documento(self.funcionario_dummy, dict())
             # devo tentar apagar o documento?
 
     def test_obter_documento(self):
@@ -44,7 +44,7 @@ class TestDocumento(SIETestCase):
     def test_remover_documento(self):
         from sie.SIEProjetosPesquisa import SIEProjetosPesquisa
         dao_projetos = SIEProjetosPesquisa()
-        documento = self.dao.criar_documento(dao_projetos.documento_inicial_padrao(self.funcionario_dummy))
+        documento = self.dao.criar_documento(self.funcionario_dummy, dao_projetos.documento_inicial_padrao(self.funcionario_dummy))
         self.dao.remover_documento(documento)
         # test passed
 
