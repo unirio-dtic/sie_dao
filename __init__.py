@@ -3,6 +3,8 @@ import os
 import base64
 import abc
 
+from sie.adapters.web2py import Web2pySIEAPIProvider
+
 __all__ = [
     "SIEAlunos"
     "SIEBolsistas",
@@ -36,9 +38,10 @@ class SIE(object):
     __metaclass__ = abc.ABCMeta
     cacheTime = 86400
 
-    @property
-    def api(self):
-        return current.api
+    def __init__(self):
+        self.__adapter = Web2pySIEAPIProvider()
+        self.api = self.__adapter.api
+        self.funcionario = self.__adapter.funcionario
 
     @staticmethod
     def handle_blob(arquivo):
