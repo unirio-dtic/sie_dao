@@ -1,9 +1,6 @@
-from gluon import current
-import os
-import base64
+# coding=utf-8
+from .adapters import ADAPTER
 import abc
-
-from sie.adapters.web2py import Web2pySIEAPIProvider
 
 __all__ = [
     "SIEAlunos"
@@ -38,15 +35,14 @@ class SIE(object):
     __metaclass__ = abc.ABCMeta
     cacheTime = 86400
 
-    def __init__(self):
-        self.__adapter = Web2pySIEAPIProvider()
+    def __init__(self, adapter=ADAPTER):
+        """
+        :type adapter: SIEDAOBaseAdapter
+        """
+        self.__adapter = adapter()
+        # Só precisam estar aqui para auxiliar no autocomplete da IDE. __getattr__ é equivalente
         self.api = self.__adapter.api
         self.funcionario = self.__adapter.funcionario
 
-    @staticmethod
-    def handle_blob(arquivo):
-        caminho_arquivo = os.path.join(current.request.folder, 'uploads', arquivo)
-        fstream = open(caminho_arquivo, mode="rb")
-        file_b64 = base64.b64encode(fstream.read())
-        fstream.close()
-        return file_b64
+    def __getattr__(self, item):
+        return self.__adapter.__getattr__(item)

@@ -7,7 +7,7 @@ class SIEDAOBaseAdapter(object):
     @abc.abstractproperty
     def api(self):
         """
-        :rtype: BaseAPI
+        :rtype: APIable
         """
         pass
 
@@ -18,8 +18,12 @@ class SIEDAOBaseAdapter(object):
         """
         pass
 
+    @staticmethod
+    @abc.abstractmethod
+    def handle_blob(arquivo): return NotImplemented
 
-class BaseAPI:
+
+class APIable:
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
