@@ -1,3 +1,4 @@
+from sie import SIEException
 from sie.tests.base import SIETestCase
 
 __author__ = 'diogomartins'
@@ -22,7 +23,7 @@ class TestTabEstruturada(SIETestCase):
         self.assertEqual(descricao, self.valid_entry['DESCRICAO'])
 
     def test_descricao_de_item_invalido(self):
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(SIEException):
             self.tab.descricaoDeItem(self.ITEM_TABELA_INVALIDO, self.COD_TABELA_INVALIDO)
 
     def test_items_de_codigo_valido(self):
@@ -33,5 +34,26 @@ class TestTabEstruturada(SIETestCase):
                 self.assertEqual(item['DESCRICAO'], self.valid_entry['DESCRICAO'])
 
     def test_items_de_codigo_invalido(self):
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(SIEException):
             self.tab.itemsDeCodigo(self.COD_TABELA_INVALIDO)
+
+    def test_drop_down_cod_valido(self):
+        items = self.tab.get_drop_down_options(self.valid_entry['COD_TABELA'])
+        self.assertIsInstance(items, list)
+        self.assertGreater(len(items), 0)
+
+    def test_drop_down_cod_invalido(self):
+        items = self.tab.get_drop_down_options(self.COD_TABELA_INVALIDO)
+        self.assertIsInstance(items, list)
+        self.assertEqual(len(items), 0)
+
+    def test_drop_down_cod_valido_com_valores_proibidos(self):
+        valores_proibidos = (1, 2,)
+        items = self.tab.get_drop_down_options(self.valid_entry['COD_TABELA'], valores_proibidos)
+
+        self.assertIsInstance(items, list)
+        self.assertGreater(len(items), 0)
+
+        for i, descricao in items:
+            if i in valores_proibidos:
+                self.fail(i + " nao deveria estar na lista de items")
