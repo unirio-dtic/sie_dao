@@ -57,3 +57,8 @@ class TestTabEstruturada(SIETestCase):
         for i, descricao in items:
             if i in valores_proibidos:
                 self.fail(i + " nao deveria estar na lista de items")
+
+    def test_get_lista_estados_federacao(self):
+        estados = self.tab.get_lista_estados_federacao()
+        self.assertIsInstance(estados, list)
+        self.assertGreater(len(estados), 0)
