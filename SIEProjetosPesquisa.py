@@ -88,7 +88,7 @@ class SIEProjetosPesquisa(SIEProjetos):
                                                          tipo_arquivo=SIEArquivosProj.ITEM_TIPO_ARQUIVO_RELATORIO_DOCENTE)
 
         documento_avaliacao = SIEAvaliacaoProjsPesquisaDAO().documento_inicial_padrao(funcionario)
-        documento = SIEDocumentoDAO(funcionario).criar_documento(documento_avaliacao)  # PASSO 1
+        documento = SIEDocumentoDAO().criar_documento(funcionario, documento_avaliacao)  # PASSO 1
 
         # cria avaliacao para o arquivo
         avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,params_projeto)
@@ -99,7 +99,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         fluxo = SIEDocumentoDAO().obter_fluxo_inicial(documento)
 
         # tramita para a câmara
-        SIEDocumentoDAO(funcionario).tramitar_documento(documento, fluxo)
+        SIEDocumentoDAO().tramitar_documento(funcionario, documento, fluxo)
 
     def registrar_projeto(self, id_projeto, funcionario):
         """
@@ -109,14 +109,14 @@ class SIEProjetosPesquisa(SIEProjetos):
         """
 
         documento_projeto = self.documento_inicial_padrao(funcionario)
-        documento = SIEDocumentoDAO(funcionario).criar_documento(documento_projeto)  # PASSO 1
+        documento = SIEDocumentoDAO().criar_documento(funcionario, documento_projeto)  # PASSO 1
 
         # marcando a maneira de lidar com o fluxo caso o destino esteja em uma query (IND_QUERY='S')
         # resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo, id_projeto) # Era usado anteriormente. Deixando aqui pois pode server para depois.
 
         # faz a primeira tramitação
         fluxo = SIEDocumentoDAO().obter_fluxo_inicial(documento)
-        SIEDocumentoDAO(funcionario).tramitar_documento(documento, fluxo)
+        SIEDocumentoDAO().tramitar_documento(funcionario, documento, fluxo)
 
         projeto = {
             "ID_PROJETO": id_projeto,
