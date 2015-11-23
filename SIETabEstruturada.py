@@ -1,6 +1,8 @@
 # coding=utf-8
-from sie import SIE
+from sie import SIE, SIEException
 from sie.sie_utils import encoded_tab_estruturada
+from unirio.api.exceptions import NoContentException
+
 
 __all__ = [
     "SIETabEstruturada"
@@ -34,8 +36,8 @@ class SIETabEstruturada(SIE):
         fields = ["DESCRICAO"]
         try:
             return self.api.get(self.path, params, fields, cache_time=self.cacheTime).first()["DESCRICAO"]
-        except AttributeError:
-            raise AttributeError("Descrição não encontrada.")
+        except NoContentException as e:
+            raise SIEException("Descrição não encontrada.", e)
 
     def itemsDeCodigo(self, COD_TABELA):
         """
@@ -57,8 +59,8 @@ class SIETabEstruturada(SIE):
             items = self.api.get(self.path, params, fields, cache_time=self.cacheTime).content
             # Primeiro item de uma de ITEMS de uma TABELA é sempre a descrição do conteúdo
             return items[1:]
-        except AttributeError:
-            raise AttributeError("Nenhum item encontreado para este código.")
+        except NoContentException as e:
+            raise SIEException("Nenhum item encontreado para este código.", e)
 
     @encoded_tab_estruturada('utf-8')
     def get_drop_down_options(self, codigo_tabela, valores_proibidos=(0,)):
@@ -69,14 +71,12 @@ class SIETabEstruturada(SIE):
         :rtype : list
         :return: Uma lista de dicionários contendo as chaves `ITEM_TABELA` e `COD_TABELA`
         """
-
         try:
             itens = self.itemsDeCodigo(codigo_tabela)
             itens = filter(lambda x: x[u'ITEM_TABELA'] not in valores_proibidos, itens)
-            lista = [ d.values() for d in itens]
-        except AttributeError:
-            lista = []
-        return lista
+            return [d.values() for d in itens]
+        except SIEException:
+            return []
 
     def get_lista_estados_federacao(self):
         """
