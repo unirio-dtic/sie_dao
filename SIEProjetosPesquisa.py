@@ -350,6 +350,7 @@ class SIEProjetosPesquisa(SIEProjetos):
                   "ID_PESSOA": id_pessoa,
                   }
         if matricula:
+            # Entidade externa só tem ID_PESSOA
             params.update({
                 "MATRICULA": matricula
             })
