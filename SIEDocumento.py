@@ -340,7 +340,7 @@ class SIEDocumentoDAO(SIE):
         try:
             params = {
                 "ID_DOCUMENTO": documento['ID_DOCUMENTO'],
-                "ORDERBY": "ID_TRAMITACAO",
+                "ORDERBY": "SEQUENCIA",
                 "SORT": "DESC"
             }
             # Pega a tramitacao atual
