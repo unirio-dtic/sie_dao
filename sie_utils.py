@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+
+from deprecate import deprecated
+
 __author__ = 'raulbarbosa'
 
 
@@ -25,6 +28,7 @@ def encoded_tab_estruturada(encoding):
 def encode_if_unicode(x):
     return x.encode('utf-8') if type(x) == unicode else x
 
+@deprecated
 def dict_encode_if_unicode(dicionario):
     return {campo: encode_if_unicode(dicionario[campo]) for campo in dicionario} if type(dicionario) == dict else {}
 
@@ -36,6 +40,8 @@ def campos_sie_lower(lista):
     """
     lista_final = []
     for item in lista:
-        novo_item = {campo.encode('utf-8').lower(): item[campo] for campo in item.keys()}
+        novo_item = {}
+        for k,v in item.iteritems():
+            novo_item[encode_if_unicode(k).lower()] = encode_if_unicode(v)
         lista_final.append(novo_item)
     return lista_final

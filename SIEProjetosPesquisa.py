@@ -168,7 +168,7 @@ class SIEProjetosPesquisa(SIEProjetos):
                                                                                        u'PALAVRA_CHAVE03'] is not None else "",
                     'keyword_4': projeto_bd[u'PALAVRA_CHAVE04'].encode('utf-8') if projeto_bd[
                                                                                        u'PALAVRA_CHAVE04'] is not None else "",
-                    "financeiro_apoio_financeiro": bool(agencia_fomento),
+                    "financeiro_apoio_financeiro": int(bool(agencia_fomento)),
                 # TODO Lógica cheia de gambiarra de lidar com fundações.
                     "carga_horaria": projeto_bd[u'CARGA_HORARIA'],
                     "financeiro_termo_outorga": termo,  # TODO
@@ -197,7 +197,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         :param form: o formulário
         :return: tupla projeto (dict), e tem_apoio_financeiro (boolean)
         """
-        tem_apoio_financeiro = form.vars['financeiro_apoio_financeiro']
+        tem_apoio_financeiro = bool(int(form.vars['financeiro_apoio_financeiro'])) # TODO gambi funciona, maaas.
         projeto = {
             # 'CARGA_HORARIA'
             'DT_CONCLUSAO': form.vars['vigencia_final'],
@@ -803,11 +803,10 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
             if participante:
                 participante_to_row = campos_sie_lower([participante])[0]
                 participante_to_row['id'] = participante_to_row['id_participante']
-                participante_to_row['titulacao'] = participante_to_row['descricao_titulacao'].encode('utf-8')
                 # participante_to_row['carga_horaria'] = '20'; #dummy
                 # participante_to_row['link_lattes'] = '???'; #dummy
                 participante_to_row['descr_mail'] = participante_to_row['descr_mail'].strip()
-                participante_to_row['funcao_projeto'] = participante_to_row['funcao_item']
+                participante_to_row['funcao'] = participante_to_row['funcao_item']
                 participante_to_row['dt_final'] = datetime.strptime(participante_to_row['dt_final'].strip(),
                                                                     '%Y-%m-%d').date() if participante_to_row['dt_final'] else None
                 participante_to_row['dt_inicial'] = datetime.strptime(participante_to_row['dt_inicial'].strip(),
@@ -859,7 +858,7 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
         :param form: o formulário
         :return: tupla participante (dict)
         """
-
+        # TODO Isto não deveria estar aqui, gera dependencia com web2py.
         participante = {
             "DT_INICIAL": form.vars.dt_final,
             "DT_FINAL": form.vars.dt_inicial,
@@ -868,7 +867,7 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
             "DESCR_MAIL": form.vars.descr_mail,
             "CH_SUGERIDA": form.vars.carga_horaria,
             # "LINK_LATTES": form.vars.link_lattes,
-            "FUNCAO_ITEM": form.vars.funcao_projeto,
+            "FUNCAO_ITEM": form.vars.funcao,
         }
 
         return participante
