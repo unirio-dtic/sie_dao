@@ -168,7 +168,7 @@ class SIEProjetosPesquisa(SIEProjetos):
                                                                                        u'PALAVRA_CHAVE03'] is not None else "",
                     'keyword_4': projeto_bd[u'PALAVRA_CHAVE04'].encode('utf-8') if projeto_bd[
                                                                                        u'PALAVRA_CHAVE04'] is not None else "",
-                    "financeiro_apoio_financeiro": bool(agencia_fomento),
+                    "financeiro_apoio_financeiro": int(bool(agencia_fomento)),
                 # TODO Lógica cheia de gambiarra de lidar com fundações.
                     "carga_horaria": projeto_bd[u'CARGA_HORARIA'],
                     "financeiro_termo_outorga": termo,  # TODO
@@ -197,7 +197,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         :param form: o formulário
         :return: tupla projeto (dict), e tem_apoio_financeiro (boolean)
         """
-        tem_apoio_financeiro = form.vars['financeiro_apoio_financeiro']
+        tem_apoio_financeiro = bool(int(form.vars['financeiro_apoio_financeiro']))
         projeto = {
             # 'CARGA_HORARIA'
             'DT_CONCLUSAO': form.vars['vigencia_final'],
