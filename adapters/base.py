@@ -23,6 +23,7 @@ class SIEDAOBaseAdapter(object):
     def handle_blob(arquivo): return NotImplemented
 
 
+# todo Renomear?
 class APIable:
     __metaclass__ = abc.ABCMeta
 

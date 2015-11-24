@@ -40,9 +40,5 @@ class SIE(object):
         :type adapter: SIEDAOBaseAdapter
         """
         self.__adapter = adapter()
-        # Só precisam estar aqui para auxiliar no autocomplete da IDE. __getattr__ é equivalente
         self.api = self.__adapter.api
         self.funcionario = self.__adapter.funcionario
-
-    def __getattr__(self, item):
-        return self.__adapter.__getattr__(item)

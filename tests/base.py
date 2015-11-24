@@ -2,9 +2,11 @@ import random
 import string
 from unirio.api import UNIRIOAPIRequest, APIServer
 from gluon import current
+from gluon.storage import Storage
 import unittest
 
 __author__ = 'diogomartins'
+env = APIServer.LOCAL
 
 
 class SIETestCase(unittest.TestCase):
@@ -12,8 +14,10 @@ class SIETestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(SIETestCase, self).__init__(*args, **kwargs)
-        self.api = UNIRIOAPIRequest(self.API_KEY_VALID, APIServer.LOCAL, cache=None)
+        self.api = UNIRIOAPIRequest(self.API_KEY_VALID, env, debug=True, cache=None)
         current.api = self.api
+        current.session = Storage()
+        current.session.funcionario = Storage()
 
     def _random_string(self, length):
         return ''.join(random.choice(string.lowercase) for i in xrange(length))
