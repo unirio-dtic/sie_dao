@@ -505,14 +505,13 @@ class _NumProcessoHandler(object):
 
     def reverter_ultimo_numero_processo(self):
         """ Reverte a geracao do ultimo numero de processo. """
-
         params = {"ID_TIPO_DOC": self.id_tipo_doc, "ANO_TIPO_DOC": self.ano}
-        fields = ["ID_NUMERO_TIPO_DOC", "NUM_ULTIMO_DOC"]
+        fields = ["NUM_ULTIMO_DOC"]
+
         try:
-            numero_tipo_doc = self.api.get_single_result(self.path, params, fields)
-            numero = numero_tipo_doc["NUM_ULTIMO_DOC"] - 1
+            valor_anterior = self.api.get_single_result(self.path, params, fields)["NUM_ULTIMO_DOC"] - 1
             try:
-                self.__atualizar_total_numero_ultimo_documento(numero_tipo_doc, numero)
+                self.__atualizar_ultimo_numero_tipo_documento(valor_anterior)
             except Exception as e:
                 raise SIEException("Erro ao reverter geracao de numero de processo.", e)
         except ValueError as e:
@@ -531,39 +530,38 @@ class _NumProcessoHandler(object):
         :raises: SIEException
         """
         params = {"ID_TIPO_DOC": self.id_tipo_doc, "ANO_TIPO_DOC": self.ano}
-        fields = ["ID_NUMERO_TIPO_DOC", "NUM_ULTIMO_DOC", "CONCORRENCIA"]
+        fields = ["NUM_ULTIMO_DOC"]
 
         try:
-            numero_tipo_doc = self.api.get_single_result(self.path, params, fields)
-            numero = numero_tipo_doc["NUM_ULTIMO_DOC"] + 1
+            numero_novo = self.api.get_single_result(self.path, params, fields)["NUM_ULTIMO_DOC"] + 1
             try:
-                self.__atualizar_total_numero_ultimo_documento(numero_tipo_doc, numero)
+                self.__atualizar_ultimo_numero_tipo_documento(numero_novo)
             except Exception as e:
-                raise SIEException("Erro ao gerir numeros de processo.", e)
+                raise SIEException("Erro ao atualizar contador numero de processo para o tipo de documento " + str(self.id_tipo_doc), e)
         except ValueError:
             # caso nao exista uma entrada na tabela, criar uma para comecar a gerir a sequencia de numeros de processo para esse tipo de documento/ano
-            raise SIEException("Não existe entrada na tabela de numeros de processo para o tipo de documento especificado")
+            raise SIEException("Não existe entrada na tabela de numeros de processo para o tipo de documento " + str(self.id_tipo_doc))
 
-        return numero
+        return numero_novo
 
-    def __atualizar_total_numero_ultimo_documento(self, numero_tipo_documento, numero):
+    def __atualizar_ultimo_numero_tipo_documento(self, valor):
         """
-        Atualiza o contador/sequence do numero de processo do tipo de documento especificado.
+        Atualiza o contador/sequence do numero de processo do tipo de documento especificado com o valor passado.
 
-        :param numero_tipo_documento: linha da tabela NUMEROS_TIPO_DOC
-        :type numero_tipo_documento: dict
-        :param numero: valor a ser assinalado
-        :type numero: int
+        :param valor: valor a ser assinalado como ultimo numero de processo do tipo de documento
+        :type valor: int
         :rtype: None
         """
-        id_numero_tipo_documento = numero_tipo_documento["ID_NUMERO_TIPO_DOC"]
+        params = {"ID_TIPO_DOC": self.id_tipo_doc, "ANO_TIPO_DOC": self.ano}
+        fields = ["ID_NUMERO_TIPO_DOC", "CONCORRENCIA"]
+        numero_tipo_documento_row = self.api.get_single_result(self.path, params, fields)
         params = {
-            "ID_NUMERO_TIPO_DOC": id_numero_tipo_documento,
-            "NUM_ULTIMO_DOC": numero,
+            "ID_NUMERO_TIPO_DOC": numero_tipo_documento_row["ID_NUMERO_TIPO_DOC"],
+            "NUM_ULTIMO_DOC": valor,
             "COD_OPERADOR": self.operador,
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
-            "CONCORRENCIA": numero_tipo_documento["CONCORRENCIA"] + 1
+            "CONCORRENCIA": numero_tipo_documento_row["CONCORRENCIA"] + 1
         }
         self.api.put(self.path, params)
 
