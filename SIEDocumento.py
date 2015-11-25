@@ -542,24 +542,9 @@ class _NumProcessoHandler(object):
                 raise SIEException("Erro ao gerir numeros de processo.", e)
         except ValueError:
             # caso nao exista uma entrada na tabela, criar uma para comecar a gerir a sequencia de numeros de processo para esse tipo de documento/ano
-            self.__atualizar_indicadores_default()
-            numero = self.__criar_novo_numero_tipo_documento()
+            raise SIEException("Não existe entrada na tabela de numeros de processo para o tipo de documento especificado")
 
         return numero
-
-    def __atualizar_indicadores_default(self):
-        """ O metodo atualiza todos os IND_DEFAULT para N para ID_TIPO_DOC da instancia """
-
-        # TODO checar se precisa do ano tambem como parametro aqui
-        numeros_documentos = self.api.get(self.path, {"ID_TIPO_DOC": self.id_tipo_doc}, ["ID_NUMERO_TIPO_DOC"])
-        for numero in numeros_documentos.content:
-            self.api.put(
-                self.path,
-                {
-                    "ID_NUMERO_TIPO_DOC": numero["ID_NUMERO_TIPO_DOC"],
-                    "IND_DEFAULT": "N"
-                }
-            )
 
     def __atualizar_total_numero_ultimo_documento(self, numero_tipo_documento, numero):
         """
@@ -581,29 +566,6 @@ class _NumProcessoHandler(object):
             "CONCORRENCIA": numero_tipo_documento["CONCORRENCIA"] + 1
         }
         self.api.put(self.path, params)
-
-    def __criar_novo_numero_tipo_documento(self):
-        """
-        Cria uma nova linha na tabela para o tipo de documento usado.
-        Nela ficara o contador/sequence do numero de processo do tipo de documento especificado.
-
-        :rtype : int
-        :return: NUM_ULTIMO_DOC da insercao
-        """
-        # num_ultimo_doc retorna 1 para que nao seja necessario chamar novo metodo para atualizar
-        num_ultimo_doc = 1
-        params = {
-            "ID_TIPO_DOC": self.id_tipo_doc,
-            "ANO_TIPO_DOC": self.ano,
-            "IND_DEFAULT": "S",
-            "NUM_ULTIMO_DOC": num_ultimo_doc,
-            "COD_OPERADOR": self.operador,
-            "DT_ALTERACAO": date.today(),
-            "HR_ALTERACAO": strftime("%H:%M:%S"),
-            "CONCORRENCIA": 0
-        }
-        self.api.post(self.path, params)
-        return num_ultimo_doc
 
     @deprecated
     def __gera_numero_processo_projeto(self, tipo):
