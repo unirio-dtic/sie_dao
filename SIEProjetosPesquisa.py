@@ -449,8 +449,8 @@ class SIEProjetosPesquisa(SIEProjetos):
             #checa se qual a situação do projeto (AVALIACAO_ITEM)
             situacao_projeto_pendente = projeto[u'AVALIACAO_ITEM']==SIEProjetosPesquisa.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_NAO_AVALIADO
             if situacao_projeto_pendente:
-                return False
-            return True
+                return True
+            return False
 
 
 class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):

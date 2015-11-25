@@ -74,8 +74,6 @@ class SIEDocentes(SIE):
             "NOME_DOCENTE"
         ]
 
-        try:
-            res = self.api.get(self.path, params, cache_time=self.cacheTime)
-            return res.content if res is not None else []
-        except ValueError:
-            return []
+        return self.api.get_single_result(self.path,params,cache_time=10000)
+
+
