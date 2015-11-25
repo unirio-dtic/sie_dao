@@ -102,6 +102,12 @@ class SIEProjetosPesquisa(SIEProjetos):
         # tramita para a câmara
         SIEDocumentoDAO().tramitar_documento(funcionario, documento, fluxo)
 
+        #atualizar projeto com avaliacao_item pendente.
+        SIEProjetosPesquisa().atualizar_projeto({
+            "ID_PROJETO":relatorio.id_projeto,
+            "AVALIACAO_ITEM": SIEProjetosPesquisa.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE_AVALIACAO
+        })
+
     def registrar_projeto(self, id_projeto, funcionario):
         """
         Cria o documento e tramita para DPQ. Muda status do projeto tb.
