@@ -92,7 +92,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         documento = SIEDocumentoDAO().criar_documento(funcionario, documento_avaliacao)  # PASSO 1
 
         # cria avaliacao para o arquivo
-        avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,params_projeto)
+        avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,params_projeto,data_prorrogacao=relatorio.nova_data_conclusao)
 
         # atualizar ref tabela de arquivos.
         SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"], {"ID_AVALIACAO_PROJ": avaliacao["ID_AVALIACAO_PROJ"]})
@@ -103,7 +103,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         SIEDocumentoDAO().tramitar_documento(funcionario, documento, fluxo)
 
         #atualizar projeto com avaliacao_item pendente.
-        SIEProjetosPesquisa().atualizar_projeto({
+        self.atualizar_projeto({
             "ID_PROJETO":relatorio.id_projeto,
             "AVALIACAO_ITEM": SIEProjetosPesquisa.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE_AVALIACAO
         })
@@ -175,7 +175,7 @@ class SIEProjetosPesquisa(SIEProjetos):
                                                                                        u'PALAVRA_CHAVE03'] is not None else "",
                     'keyword_4': projeto_bd[u'PALAVRA_CHAVE04'].encode('utf-8') if projeto_bd[
                                                                                        u'PALAVRA_CHAVE04'] is not None else "",
-                    "financeiro_apoio_financeiro": int(bool(agencia_fomento)),
+                    "financeiro_apoio_financeiro": int(bool(agencia_fomento)), #agencia de fomento é uma linha de orgaos do projeto. a representacao na pagina espera um int (0 ou 1).
                 # TODO Lógica cheia de gambiarra de lidar com fundações.
                     "carga_horaria": projeto_bd[u'CARGA_HORARIA'],
                     "financeiro_termo_outorga": termo,  # TODO
@@ -597,7 +597,7 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         else:
             return situacao_projeto
 
-    def criar_avaliacao(self,id_projeto,documento,params_projeto_pesquisa,prorrogacao=False):
+    def criar_avaliacao(self,id_projeto,documento,params_projeto_pesquisa,data_prorrogacao):
         """
         :param id_projeto:
         :param documento:
@@ -613,7 +613,7 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
             "TIPO_AVAL_TAB": self.COD_TABELA_TIPO_AVALIACAO,
             "TIPO_AVAL_ITEM": self.ITEM_TIPO_AVALIACAO_PROJETO,
             "SITUACAO_TAB": SIEProjetosPesquisa.COD_TABELA_SITUACAO,
-            "SITUACAO_ITEM": self._resolve_situacao_avaliacao(projeto['SITUACAO_ITEM'],prorrogacao),
+            "SITUACAO_ITEM": self._resolve_situacao_avaliacao(projeto['SITUACAO_ITEM'],data_prorrogacao),
             "ANO_REF": params_projeto_pesquisa["ANO_REF_AVAL"]  # TODO  em tese, o ano de referencia é o ano atual de avaliação, pois nenhum projeto pode pedir bolsas sem estar 'em andamento' e para estar 'em andamento' os relatórios não podem estar atrasados -> só falta o relatório atual
 
         }
@@ -623,6 +623,11 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
             "ID_DOCUMENTO": documento['ID_DOCUMENTO'],
             "NUM_PROCESSO": documento["NUM_PROCESSO"]
         })
+
+        if data_prorrogacao:
+            avaliacao_default.update({
+                'DT_CONCLUSAO': data_prorrogacao
+            })
 
         try:
             resultado = self.api.post(self.path, avaliacao_default)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from datetime import datetime
 from deprecate import deprecated
 
 __author__ = 'raulbarbosa'
@@ -45,3 +45,10 @@ def campos_sie_lower(lista):
             novo_item[encode_if_unicode(k).lower()] = encode_if_unicode(v)
         lista_final.append(novo_item)
     return lista_final
+
+
+def sie_date_to_str():
+    raise NotImplementedError
+
+def sie_str_to_date(campo,format='%Y-%m-%d'):
+    return datetime.strptime(campo,format).date()
