@@ -163,7 +163,6 @@ class SIEDocumentoDAO(SIE):
             "COD_OPERADOR": operador["ID_USUARIO"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
-            "CONCORRENCIA": documento["CONCORRENCIA"] + 1
         }
         self.api.put(self.path, documento_atualizado)
 
@@ -192,7 +191,6 @@ class SIEDocumentoDAO(SIE):
             "COD_OPERADOR": documento["COD_OPERADOR"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
-            "CONCORRENCIA": 0,
             "PRIORIDADE_TAB": 5101,  # Tabela estruturada utilizada para indicar o nivel de prioridade
             "PRIORIDADE_ITEM": SIEDocumentoDAO.TRAMITACAO_PRIORIDADE_NORMAL
         }
@@ -234,7 +232,6 @@ class SIEDocumentoDAO(SIE):
             "COD_OPERADOR": operador["ID_USUARIO"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
-            "CONCORRENCIA": 0,
             "PRIORIDADE_TAB": 5101,
             "PRIORIDADE_ITEM": SIEDocumentoDAO.TRAMITACAO_PRIORIDADE_NORMAL
         }
@@ -285,7 +282,6 @@ class SIEDocumentoDAO(SIE):
                 "COD_OPERADOR": funcionario["ID_USUARIO"],
                 "DT_ALTERACAO": date.today(),
                 "HR_ALTERACAO": strftime("%H:%M:%S"),
-                "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1,
                 "ID_USUARIO_INFO": funcionario["ID_USUARIO"],
                 "DT_DESPACHO": date.today(),
                 "HR_DESPACHO": strftime("%H:%M:%S"),
@@ -321,7 +317,6 @@ class SIEDocumentoDAO(SIE):
                 "COD_OPERADOR": operador["ID_USUARIO"],
                 "DT_ALTERACAO": date.today(),
                 "HR_ALTERACAO": strftime("%H:%M:%S"),
-                "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1
             })
 
             self.api.put(self.tramite_path, tramitacao)
@@ -435,7 +430,8 @@ class SIEDocumentoDAO(SIE):
 
         return fluxos.first()
 
-    def __calcular_data_validade(self, data, dias):
+    @staticmethod
+    def __calcular_data_validade(data, dias):
         """
         Autodocumentada.
 
