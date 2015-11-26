@@ -397,12 +397,12 @@ class SIEDocumentoDAO(SIE):
 
         params = {
             "ID_TIPO_DOC": documento["ID_TIPO_DOC"],
-            "SITUACAO_ATUAL": documento["SITUACAO_FUTURA"],
+            "SITUACAO_ATUAL": documento["SITUACAO_ATUAL"],
             "IND_ATIVO": "S",
             "LMIN": 0,
             "LMAX": 99999999
         }
-        return self.api.get(self.fluxo_path, params)
+        return self.api.get(self.fluxo_path, params, bypass_no_content_exception=True)
 
     def obter_fluxo_inicial(self, documento):
         """
