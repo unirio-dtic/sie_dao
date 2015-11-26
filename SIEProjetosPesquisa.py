@@ -49,7 +49,7 @@ class SIEProjetosPesquisa(SIEProjetos):
     ITEM_FUNCOES_ORGAOS_AGENCIA_FOMENTO = 4
     ITEM_ESTADO_REGULAR = 1
 
-    TEMPO_ISENCAO_RELATORIO = 8 # tempo que é dado de isenção entre cadastro e cobrança de relatório.
+    TEMPO_ISENCAO_RELATORIO = 8  # tempo que é dado de isenção entre cadastro e cobrança de relatório.
 
     TIPO_DOCUMENTO = 217
 
@@ -59,6 +59,24 @@ class SIEProjetosPesquisa(SIEProjetos):
 
     def __init__(self):
         super(SIEProjetosPesquisa, self).__init__()
+
+    @property
+    def projeto_padrao(self):
+        return {
+            "EVENTO_TAB": self.COD_TABELA_TIPO_EVENTO,
+            "EVENTO_ITEM": self.ITEM_TIPO_EVENTO_NAO_SE_APLICA,
+            "TIPO_PUBLICO_TAB": self.COD_TABELA_TIPO_PUBLICO_ALVO,
+            "TIPO_PUBLICO_ITEM": self.ITEM_TIPO_PUBLICO_3_GRAU,
+            "ACESSO_PARTICIP": self.ACESSO_PARTICIPANTES_APENAS_COORDENADOR,
+            "PAGA_BOLSA": self.NAO_PAGA_BOLSA,
+            "AVALIACAO_TAB": self.COD_TABELA_AVALIACAO_PROJETOS_INSTITUICAO,
+            "AVALIACAO_ITEM": self.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE,
+            'ID_CLASSIFICACAO': self.ITEM_CLASSIFICACAO_PROJETO_PESQUISA,
+            'SITUACAO_TAB': self.COD_TABELA_SITUACAO,
+            'SITUACAO_ITEM': self.ITEM_SITUACAO_TRAMITE_REGISTRO,
+            'FUNDACAO_TAB': self.COD_TABELA_FUNDACOES,
+            "DT_REGISTRO": date.today()
+        }
 
     def get_agencia_fomento(self, id_projeto):
         """
@@ -78,29 +96,32 @@ class SIEProjetosPesquisa(SIEProjetos):
         try:
             agencias = self.api.get("V_PROJETOS_ORGAOS", params, cache_time=0)
             return agencias.first()
-        except (NoContentException,ValueError):
+        except (NoContentException, ValueError):
             return None
 
-    def enviar_relatorio_docente(self, relatorio,funcionario,params_projeto):
+    def enviar_relatorio_docente(self, relatorio, params_projeto):
 
         arquivo_salvo = SIEArquivosProj().salvar_arquivo(nome_arquivo=relatorio.filename,
                                                          arquivo=relatorio.arquivo,
                                                          id_projeto=relatorio.id_projeto,
                                                          tipo_arquivo=SIEArquivosProj.ITEM_TIPO_ARQUIVO_RELATORIO_DOCENTE)
 
-        documento_avaliacao = SIEAvaliacaoProjsPesquisaDAO().documento_inicial_padrao(funcionario)
-        documento = SIEDocumentoDAO().criar_documento(funcionario, documento_avaliacao)  # PASSO 1
+        documento_avaliacao = SIEAvaliacaoProjsPesquisaDAO().documento_inicial_padrao()
+        documentoDAO = SIEDocumentoDAO()
+        documento = documentoDAO.criar_documento(documento_avaliacao)  # PASSO 1
 
         # cria avaliacao para o arquivo
+
         avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,params_projeto,data_prorrogacao=relatorio.nova_data_conclusao)
 
         # atualizar ref tabela de arquivos.
-        SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"], {"ID_AVALIACAO_PROJ": avaliacao["ID_AVALIACAO_PROJ"]})
+        SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"],
+                                            {"ID_AVALIACAO_PROJ": avaliacao["ID_AVALIACAO_PROJ"]})
 
         fluxo = SIEDocumentoDAO().obter_fluxo_inicial(documento)
 
         # tramita para a câmara
-        SIEDocumentoDAO().tramitar_documento(funcionario, documento, fluxo)
+        documentoDAO.tramitar_documento(documento, fluxo)
 
         #atualizar projeto com avaliacao_item pendente.
         self.atualizar_projeto({
@@ -108,22 +129,24 @@ class SIEProjetosPesquisa(SIEProjetos):
             "AVALIACAO_ITEM": SIEProjetosPesquisa.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE_AVALIACAO
         })
 
-    def registrar_projeto(self, id_projeto, funcionario):
+    def registrar_projeto(self, id_projeto):
         """
         Cria o documento e tramita para DPQ. Muda status do projeto tb.
         :param id_projeto:
         :return:
+        :rtype: bool
         """
 
-        documento_projeto = self.documento_inicial_padrao(funcionario)
-        documento = SIEDocumentoDAO().criar_documento(funcionario, documento_projeto)  # PASSO 1
+        documento_projeto = self.documento_inicial_padrao()
+        documentoDAO = SIEDocumentoDAO()
+        documento = documentoDAO.criar_documento(documento_projeto)  # PASSO 1
 
         # marcando a maneira de lidar com o fluxo caso o destino esteja em uma query (IND_QUERY='S')
         # resolvedor_destino = lambda fluxo: self.resolve_destino_tramitacao(fluxo, id_projeto) # Era usado anteriormente. Deixando aqui pois pode server para depois.
 
         # faz a primeira tramitação
-        fluxo = SIEDocumentoDAO().obter_fluxo_inicial(documento)
-        SIEDocumentoDAO().tramitar_documento(funcionario, documento, fluxo)
+        fluxo = documentoDAO.obter_fluxo_inicial(documento)
+        documentoDAO.tramitar_documento(documento, fluxo)
 
         projeto = {
             "ID_PROJETO": id_projeto,
@@ -131,11 +154,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             "NUM_PROCESSO": documento['NUM_PROCESSO']
         }
 
-        sucesso_atualizar_projeto = self.atualizar_projeto(projeto)
-        if sucesso_atualizar_projeto:
-            return True
-        else:
-            return False
+        return self.atualizar_projeto(projeto)
 
     def resolve_destino_tramitacao(self, fluxo, id_projeto):
         """
@@ -147,7 +166,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             "ID_PROJETO": id_projeto
         }
         id_destino = self.api.get("ORGAOS_PROJETOS", params).first()
-        return (fluxo['TIPO_DESTINO'], id_destino)
+        return fluxo['TIPO_DESTINO'], id_destino
 
     def get_projeto_as_row(self, id_projeto):
         """
@@ -159,9 +178,10 @@ class SIEProjetosPesquisa(SIEProjetos):
         if id_projeto:
             projeto_bd = self.get_projeto(id_projeto)
             if projeto_bd:
-                termo = SIEArquivosProj().get_termo_outorga(id_projeto)
-                ata = SIEArquivosProj().get_ata_departamento(id_projeto)
-                arquivo_proj = SIEArquivosProj().get_arquivo_projeto(id_projeto)
+                arquivosDAO = SIEArquivosProj()
+                termo = arquivosDAO.get_termo_outorga(id_projeto)
+                ata = arquivosDAO.get_ata_departamento(id_projeto)
+                arquivo_proj = arquivosDAO.get_arquivo_projeto(id_projeto)
                 agencia_fomento = self.get_agencia_fomento(id_projeto)
 
                 projeto = {
@@ -187,16 +207,16 @@ class SIEProjetosPesquisa(SIEProjetos):
                     "financeiro_origem": agencia_fomento["ORIGEM"] if agencia_fomento else "",
                     "ata_departamento": ata,  # TODO
                     "arquivo_projeto": arquivo_proj,  # TODO
-                    'vigencia_inicio': datetime.strptime(projeto_bd[u'DT_INICIAL'], '%Y-%m-%d').date() if projeto_bd[u'DT_INICIAL'] else None,
-                    'vigencia_final': datetime.strptime(projeto_bd[u'DT_CONCLUSAO'], '%Y-%m-%d').date() if projeto_bd[u'DT_CONCLUSAO'] else None,
+                    'vigencia_inicio': datetime.strptime(projeto_bd[u'DT_INICIAL'], '%Y-%m-%d').date() if projeto_bd[
+                        u'DT_INICIAL'] else None,
+                    'vigencia_final': datetime.strptime(projeto_bd[u'DT_CONCLUSAO'], '%Y-%m-%d').date() if projeto_bd[
+                        u'DT_CONCLUSAO'] else None,
                     'id': projeto_bd[u"ID_PROJETO"]
                 }
-                projeto = Row(**projeto)
+                return Row(**projeto)
             else:
-                projeto = None
-        else:
-            projeto = None
-        return projeto
+                return None
+        return None
 
     def from_form(self, form):
         """
@@ -212,7 +232,7 @@ class SIEProjetosPesquisa(SIEProjetos):
             'DT_CONCLUSAO': form.vars['vigencia_final'],
             'DT_INICIAL': form.vars['vigencia_inicio'],
             'FUNDACAO_ITEM': self.ITEM_FUNDACOES_NAO_SE_APLICA,
-        # TODO Lógica gambiarra de lidar com fundações: Item é sempre jogado como não se aplica. Existe uma linha na tabela de órgãos que substitui esse campo
+            # TODO Lógica gambiarra de lidar com fundações: Item é sempre jogado como não se aplica. Existe uma linha na tabela de órgãos que substitui esse campo
             'PALAVRA_CHAVE01': form.vars['keyword_1'],
             'PALAVRA_CHAVE02': form.vars['keyword_2'],
             'PALAVRA_CHAVE03': form.vars['keyword_3'],
@@ -260,7 +280,6 @@ class SIEProjetosPesquisa(SIEProjetos):
         }
 
         projeto.update(projeto_padrao)
-
         try:
             novo_projeto = self.api.post(self.path, projeto)
             projeto.update({'id_projeto': novo_projeto.insertId})
@@ -285,7 +304,8 @@ class SIEProjetosPesquisa(SIEProjetos):
         :return: lista contendo listas ("CodOpcao","NomeOpcao")
         """
         return SIETabEstruturada().get_drop_down_options(codigo_tabela=self.COD_TABELA_FUNDACOES,
-                                                         valores_proibidos=(self.ITEM_TAB_ESTRUTURADA_DESCRICAO_CAMPO, self.ITEM_FUNDACOES_NAO_SE_APLICA,))
+                                                         valores_proibidos=(self.ITEM_TAB_ESTRUTURADA_DESCRICAO_CAMPO,
+                                                                            self.ITEM_FUNDACOES_NAO_SE_APLICA,))
 
     def get_lista_funcoes_orgaos(self):
         """
@@ -370,11 +390,14 @@ class SIEProjetosPesquisa(SIEProjetos):
         except ValueError:
             return {}
 
-    def get_projetos_pode_pedir_bolsista(self, cpf_coordenador):  # TODO possivelmente atrelado a uma instancia de algum modelo de coordenador
-        projetos_possiveis = self.get_projetos(cpf_coordenador=cpf_coordenador, situacoes=[self.ITEM_SITUACAO_ANDAMENTO, self.ITEM_SITUACAO_TRAMITE_REGISTRO])
+    def get_projetos_pode_pedir_bolsista(self,
+                                         cpf_coordenador):  # TODO possivelmente atrelado a uma instancia de algum modelo de coordenador
+        projetos_possiveis = self.get_projetos(cpf_coordenador=cpf_coordenador, situacoes=[self.ITEM_SITUACAO_ANDAMENTO,
+                                                                                           self.ITEM_SITUACAO_TRAMITE_REGISTRO])
 
         # Filtra os que tão sem id_documento (ainda não tramitados)
-        return filter(lambda projeto: projeto["ID_DOCUMENTO"] is not None, projetos_possiveis)  # TODO tem como fazer sem ser por aqui? checar is not null pela API?
+        return filter(lambda projeto: projeto["ID_DOCUMENTO"] is not None,
+                      projetos_possiveis)  # TODO tem como fazer sem ser por aqui? checar is not null pela API?
 
     def get_projetos_em_andamento(self, cpf_coordenador):
         return self.get_projetos(cpf_coordenador, self.ITEM_SITUACAO_ANDAMENTO)
@@ -438,7 +461,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         projeto = self.get_projeto(id_projeto)
         data_inicio = datetime.strptime(projeto[u'DT_REGISTRO'], '%Y-%m-%d').date()
         data_cadastro = datetime.strptime(projeto[u'DT_INICIAL'], '%Y-%m-%d').date()
-        data_inicio = min(data_inicio,data_cadastro)
+        data_inicio = min(data_inicio, data_cadastro)
 
         no_dias_limite = self.TEMPO_ISENCAO_RELATORIO*30.5 # TODO 30.5 é uma aproximacao para mes, já que timedelta não tal diferenca
         data_limite_avaliacao = datetime.strptime(params_prod_inst["DT_TERMINO_AVAL"], '%Y-%m-%d').date()
@@ -471,8 +494,10 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
                     'descricao_origem': "UNIRIO" if orgao_bd[u"ORIGEM"] == "ID_UNIDADE" else "Externo",
                     'funcao_orgao': orgao_bd[u"FUNCAO_ORG_ITEM"],
                     "valor": orgao_bd[u'VL_CONTRIBUICAO'],
-                    'participacao_inicio': datetime.strptime(orgao_bd[u'DT_INICIAL'], '%Y-%m-%d').date() if orgao_bd[u'DT_INICIAL'] else None,
-                    'participacao_fim': datetime.strptime(orgao_bd[u'DT_FINAL'], '%Y-%m-%d').date() if orgao_bd[u'DT_FINAL'] else None,
+                    'participacao_inicio': datetime.strptime(orgao_bd[u'DT_INICIAL'], '%Y-%m-%d').date() if orgao_bd[
+                        u'DT_INICIAL'] else None,
+                    'participacao_fim': datetime.strptime(orgao_bd[u'DT_FINAL'], '%Y-%m-%d').date() if orgao_bd[
+                        u'DT_FINAL'] else None,
                     'observacao': orgao_bd[u'OBS_ORG_PROJETO'].encode('utf-8'),
                     'id': orgao_bd[u"ID_ORGAO_PROJETO"]
                 }
@@ -571,15 +596,14 @@ class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
 
 
 class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
-
     COD_TABELA_TIPO_AVALIACAO = 6016
     ITEM_TIPO_AVALIACAO_PROJETO = 1
 
 
     def __init__(self):
-        super(SIEAvaliacaoProjDAO,self).__init__()
+        super(SIEAvaliacaoProjDAO, self).__init__()
 
-    def _resolve_situacao_avaliacao(self,situacao_projeto,prorrogacao):
+    def _resolve_situacao_avaliacao(self, situacao_projeto, prorrogacao):
         """Resolve o valor da coluna 'SITUACAO_ITEM' da avaliação a ser criada.
         TODO Existem casos não previstos?
         :param situacao_projeto: conteudo da coluna 'SITUACAO_ITEM' da tabela PROJETOS
@@ -590,14 +614,14 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         :rtype: int
         """
 
-        if situacao_projeto==SIEProjetosPesquisa.ITEM_SITUACAO_SUSPENSO:
+        if situacao_projeto == SIEProjetosPesquisa.ITEM_SITUACAO_SUSPENSO:
             return SIEProjetosPesquisa.ITEM_SITUACAO_ANDAMENTO
         elif prorrogacao:
             return SIEProjetosPesquisa.ITEM_SITUACAO_RENOVADO
         else:
             return situacao_projeto
 
-    def criar_avaliacao(self,id_projeto,documento,params_projeto_pesquisa,data_prorrogacao):
+    def criar_avaliacao(self,id_projeto,documento,params_projeto_pesquisa,data_prorrogacao=False):
         """
         :param id_projeto:
         :param documento:
@@ -661,9 +685,9 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
         }
 
         if candidato['link_lattes']:
-            candidato_bolsista.update({"LINK_LATTES":candidato['link_lattes']})
+            candidato_bolsista.update({"LINK_LATTES": candidato['link_lattes']})
         if candidato['descr_mail']:
-            candidato_bolsista.update({"DESCR_MAIL":candidato['descr_mail']})
+            candidato_bolsista.update({"DESCR_MAIL": candidato['descr_mail']})
         if candidato['renovacao']:
             candidato_bolsista.update({"RENOVACAO": "S"})
 
@@ -684,13 +708,13 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
         # }
         return candidato_bolsista
 
-    def deletar_candidatos(self,candidatos):
+    def deletar_candidatos(self, candidatos):
         try:
             for candidato in candidatos:
                 params = {"ID_CANDIDATOS_BOLSISTA": candidato["ID_CANDIDATOS_BOLSISTA"]}
 
                 # Deletar linha do candidato
-                self.api.delete(self.path,params)
+                self.api.delete(self.path, params)
                 # plano de estudo relacionado.
                 SIEArquivosProj().deletar_arquivo(candidato["ID_PLANO_ESTUDO"])
 
@@ -698,7 +722,7 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
             raise SIEException("Não foi possível deletar candidato a bolsista", e)
         return True
 
-    def get_candidato_bolsista(self,**kwargs):
+    def get_candidato_bolsista(self, **kwargs):
         """
         Retorna o candidato a bolsista, dependendo dos kwargs passados. Existem duas formas de se pegar um candidato a bolsista:
         Uma é via o id_candidatos_bolsista, ou é via id_projeto + id_curso_aluno
@@ -710,18 +734,18 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
         params = {}
         if kwargs.has_key('id_candidatos_bolsista'):
             params.update({
-                "ID_CANDIDATOS_BOLSISTA":kwargs['id_candidatos_bolsista']
+                "ID_CANDIDATOS_BOLSISTA": kwargs['id_candidatos_bolsista']
             })
         elif kwargs.has_key('id_projeto') and kwargs.has_key('id_curso_aluno') and kwargs.has_key('ano_ref'):
             params.update({
-                "ID_PROJETO":kwargs['id_projeto'],
-                "ID_CURSO_ALUNO":kwargs['id_curso_aluno'],
-                "ANO_REF_AVAL": kwargs['ano_ref'] # TODO Seria mesmo ano ref aval? ou ano candidatura?
+                "ID_PROJETO": kwargs['id_projeto'],
+                "ID_CURSO_ALUNO": kwargs['id_curso_aluno'],
+                "ANO_REF_AVAL": kwargs['ano_ref']  # TODO Seria mesmo ano ref aval? ou ano candidatura?
             })
         else:
             raise RuntimeError("Parâmetros inválidos.")
 
-        return self.api.get_single_result(self.path,params,cache_time=0)
+        return self.api.get_single_result(self.path, params, cache_time=0)
 
     def get_candidatos_bolsistas(self, cpf_coordenador):
         """
@@ -739,7 +763,7 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
 
         return self.api.get("V_CANDIDATOS_BOLSISTA_DADOS", params, bypass_no_content_exception=True)
 
-    def cadastra_candidato(self,candidato,ano_ref):
+    def cadastra_candidato(self, candidato, ano_ref):
         """
         Cadastra candidato a bolsista no banco pela API.
 
@@ -748,18 +772,19 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
         """
 
         candidato.update({
-            "ANO_REF_AVAL":ano_ref
+            "ANO_REF_AVAL": ano_ref
         })
         return self.api.post(self.path, candidato)
 
-    def inserir_candidato_bolsista(self,candidato,id_plano_estudos):
+    def inserir_candidato_bolsista(self, candidato, id_plano_estudos):
 
-        candidato_bolsista = SIECandidatosBolsistasProjsPesquisa().from_candidato_item(candidato,id_plano_estudos)
-        ano_ref = SIEParametrosDAO().parametros_prod_inst()["ANO_REF_AVAL"] # TODO em tese, o ano de referencia é o ano atual??
+        candidato_bolsista = SIECandidatosBolsistasProjsPesquisa().from_candidato_item(candidato, id_plano_estudos)
+        ano_ref = SIEParametrosDAO().parametros_prod_inst()[
+            "ANO_REF_AVAL"]  # TODO em tese, o ano de referencia é o ano atual??
 
         # TODO candidato_bolsista_no_banco = SIECandidatosBolsistasProjsPesquisa().get_candidato_bolsista(id_projeto=candidato['projeto_pesquisa'],id_curso_aluno=candidato['id_curso_aluno'],ano_ref=ano_ref) # TODO seria essa uma boa maneira de verificar? podia ter uma exception quando inserisse? id_projeto + id_curso_aluno?
         # TODO if not candidato_bolsista_no_banco:
-        SIECandidatosBolsistasProjsPesquisa().cadastra_candidato(candidato_bolsista,ano_ref)
+        SIECandidatosBolsistasProjsPesquisa().cadastra_candidato(candidato_bolsista, ano_ref)
         # else:
         #    raise CandidatoBolsistaExistenteException
 
@@ -823,9 +848,11 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
                 participante_to_row['descr_mail'] = participante_to_row['descr_mail'].strip()
                 participante_to_row['funcao'] = participante_to_row['funcao_item']
                 participante_to_row['dt_final'] = datetime.strptime(participante_to_row['dt_final'].strip(),
-                                                                    '%Y-%m-%d').date() if participante_to_row['dt_final'] else None
+                                                                    '%Y-%m-%d').date() if participante_to_row[
+                    'dt_final'] else None
                 participante_to_row['dt_inicial'] = datetime.strptime(participante_to_row['dt_inicial'].strip(),
-                                                                      '%Y-%m-%d').date() if participante_to_row['dt_inicial'] else None
+                                                                      '%Y-%m-%d').date() if participante_to_row[
+                    'dt_inicial'] else None
                 participante_row = Row(**participante_to_row)
             else:
                 participante_row = None

@@ -290,15 +290,16 @@ class SIEProjetos(SIE):
         """
         return SIETabEstruturada().itemsDeCodigo(6011)
 
-    def documento_inicial_padrao(self,funcionario):
-        novo_documento_params = {
+    def documento_inicial_padrao(self):
+        #todo Property ?
+        return {
             "ID_TIPO_DOC": self.TIPO_DOCUMENTO,
-            "ID_PROCEDENCIA": funcionario["ID_CONTRATO_RH"],
-            "ID_PROPRIETARIO": funcionario["ID_USUARIO"],
-            "ID_CRIADOR": funcionario["ID_USUARIO"],
+            "ID_PROCEDENCIA": self.usuario["ID_CONTRATO_RH"],
+            "ID_PROPRIETARIO": self.usuario["ID_USUARIO"],
+            "ID_CRIADOR": self.usuario["ID_USUARIO"],
             "TIPO_PROCEDENCIA": "S",
             "TIPO_INTERESSADO": "S",
-            "ID_INTERESSADO": funcionario["ID_CONTRATO_RH"],
+            "ID_INTERESSADO": self.usuario["ID_CONTRATO_RH"],
             "SITUACAO_ATUAL": 1,
             "TIPO_PROPRIETARIO": 20, # Indica a restrição de usuário
             # "TIPO_ORIGEM": 20,  # atualizacao do sie Out/2015
@@ -310,8 +311,6 @@ class SIEProjetos(SIE):
             "TEMPO_ESTIMADO": 1,
             # "SEQUENCIA": 1  # atualizacao do sie Out/2015
         }
-
-        return novo_documento_params
 
 
 class SIEAvaliacaoProjDAO(SIE):
@@ -337,16 +336,17 @@ class SIEAvaliacaoProjDAO(SIE):
 
         return self.api.get_single_result(self.path, params, bypass_no_content_exception=True)
 
-    def documento_inicial_padrao(self,funcionario):
+    def documento_inicial_padrao(self):
         #TODO Checar com o ALEX!
-        novo_documento_params = {
+        #todo Property ?
+        return {
             "ID_TIPO_DOC": 223,
-            "ID_PROCEDENCIA": funcionario["ID_CONTRATO_RH"],
-            "ID_PROPRIETARIO": funcionario["ID_USUARIO"],
-            "ID_CRIADOR": funcionario["ID_USUARIO"],
+            "ID_PROCEDENCIA": self.usuario["ID_CONTRATO_RH"],
+            "ID_PROPRIETARIO": self.usuario["ID_USUARIO"],
+            "ID_CRIADOR": self.usuario["ID_USUARIO"],
             "TIPO_PROCEDENCIA": "S",
             "TIPO_INTERESSADO": "S",
-            "ID_INTERESSADO": funcionario["ID_CONTRATO_RH"],
+            "ID_INTERESSADO": self.usuario["ID_CONTRATO_RH"],
             "SITUACAO_ATUAL": 1,
             "TIPO_PROPRIETARIO": 20, # Indica a restrição de usuário
             # "TIPO_ORIGEM": 20,  # atualizacao do sie Out/2015
@@ -359,7 +359,6 @@ class SIEAvaliacaoProjDAO(SIE):
             # "SEQUENCIA": 1  # atualizacao do sie Out/2015
         }
 
-        return novo_documento_params
 
 class SIEArquivosProj(SIE):
 

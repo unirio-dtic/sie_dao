@@ -9,12 +9,12 @@ from unirio.api.exceptions import APIException
 
 __all__ = [
     "SIEDocumentoDAO",
+    "_NumeroProcessoTipoDocumentoDAO"
 ]
 
 
 class SIEDocumentoDAO(SIE):
 
-    # ******************************** Constantes ***********************************
     # Valores de prioridade de documento
 
     TRAMITACAO_PRIORIDADE_NORMAL = 2
@@ -34,20 +34,10 @@ class SIEDocumentoDAO(SIE):
     # Paths para busca na api
 
     path = "DOCUMENTOS"
-    """ Caminho da API para trabalhar com documentos """
-
     tramite_path = "TRAMITACOES"
-    """ Caminho da API para trabalhar com tramitacoes """
-
     fluxo_path = "FLUXOS"
-    """ Caminho da API para trabalhar com fluxos de tramitacoes """
 
-    # *******************************************************************************
-
-    def __init__(self):
-        super(SIEDocumentoDAO, self).__init__()
-
-    def criar_documento(self, operador, novo_documento_params):
+    def criar_documento(self,  novo_documento_params):
         """
         Inclui um novo documento eletronico do SIE e retorna ele. Uma tramitacao inicial ja eh iniciada (exceto se for especificado sem_tramite=True).
 
@@ -72,7 +62,7 @@ class SIEDocumentoDAO(SIE):
         :rtype: dict
         """
 
-        num_processo_handler = _NumProcessoHandler(self.api, novo_documento_params["ID_TIPO_DOC"], operador)
+        num_processo_handler = _NumeroProcessoTipoDocumentoDAO(novo_documento_params["ID_TIPO_DOC"])
 
         # determinando ultimo numero
         num_processo = num_processo_handler.gerar_numero_processo()
@@ -159,10 +149,9 @@ class SIEDocumentoDAO(SIE):
         documento_atualizado = {
             "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
             "SITUACAO_ATUAL": fluxo["SITUACAO_FUTURA"],
-            "COD_OPERADOR": operador["ID_USUARIO"],
+            "COD_OPERADOR": self.usuario["ID_USUARIO"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
-            "CONCORRENCIA": documento["CONCORRENCIA"] + 1
         }
         self.api.put(self.path, documento_atualizado)
 
@@ -191,7 +180,6 @@ class SIEDocumentoDAO(SIE):
             "COD_OPERADOR": documento["COD_OPERADOR"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
-            "CONCORRENCIA": 0,
             "PRIORIDADE_TAB": 5101,  # Tabela estruturada utilizada para indicar o nivel de prioridade
             "PRIORIDADE_ITEM": SIEDocumentoDAO.TRAMITACAO_PRIORIDADE_NORMAL
         }
@@ -233,7 +221,6 @@ class SIEDocumentoDAO(SIE):
             "COD_OPERADOR": operador["ID_USUARIO"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
-            "CONCORRENCIA": 0,
             "PRIORIDADE_TAB": 5101,
             "PRIORIDADE_ITEM": SIEDocumentoDAO.TRAMITACAO_PRIORIDADE_NORMAL
         }
@@ -260,8 +247,7 @@ class SIEDocumentoDAO(SIE):
 
         try:
             # Pega a tramitacao atual
-            tramitacao = self.obter_tramitacao_atual(documento)  # Espera uma linha de tramitacao com status 'T'
-            funcionario = operador
+            tramitacao = self.obter_tramitacao_atual(documento)  # Espera uma linha de tramitação com status 'T'
 
             if self.__is_destino_fluxo_definido_externamente(fluxo):
                 if not resolvedor_destino:
@@ -281,11 +267,11 @@ class SIEDocumentoDAO(SIE):
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_ENTREGUE,
                 "IND_RETORNO_OBRIG": SIEDocumentoDAO.TRAMITACAO_IND_RETORNO_OBRIG_CONFORME_FLUXO,
                 "ID_FLUXO": fluxo["ID_FLUXO"],
-                "COD_OPERADOR": funcionario["ID_USUARIO"],
+                "COD_OPERADOR": self.usuario["ID_USUARIO"],
                 "DT_ALTERACAO": date.today(),
                 "HR_ALTERACAO": strftime("%H:%M:%S"),
                 "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1,
-                "ID_USUARIO_INFO": funcionario["ID_USUARIO"],
+                "ID_USUARIO_INFO": self.usuario["ID_USUARIO"],
                 "DT_DESPACHO": date.today(),
                 "HR_DESPACHO": strftime("%H:%M:%S"),
                 "ID_APLIC_ACAO": fluxo["ID_APLIC_ACAO"]
@@ -317,10 +303,9 @@ class SIEDocumentoDAO(SIE):
             tramitacao = self.obter_tramitacao_atual(documento)
             tramitacao.update({
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO,
-                "COD_OPERADOR": operador["ID_USUARIO"],
+                "COD_OPERADOR": self.usuario["ID_USUARIO"],
                 "DT_ALTERACAO": date.today(),
                 "HR_ALTERACAO": strftime("%H:%M:%S"),
-                "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1
             })
 
             self.api.put(self.tramite_path, tramitacao)
@@ -370,7 +355,7 @@ class SIEDocumentoDAO(SIE):
     def __is_destino_fluxo_definido_externamente(fluxo):
         return fluxo['IND_QUERY'].strip() == 'S'
 
-    # ========================= Fluxos ===================================
+    # MARK: Fluxos
 
     def obter_fluxo_tramitacao_atual(self, documento):
         """
@@ -401,12 +386,12 @@ class SIEDocumentoDAO(SIE):
 
         params = {
             "ID_TIPO_DOC": documento["ID_TIPO_DOC"],
-            "SITUACAO_ATUAL": documento["SITUACAO_FUTURA"],
+            "SITUACAO_ATUAL": documento["SITUACAO_ATUAL"],
             "IND_ATIVO": "S",
             "LMIN": 0,
             "LMAX": 99999999
         }
-        return self.api.get(self.fluxo_path, params)
+        return self.api.get(self.fluxo_path, params, bypass_no_content_exception=True)
 
     def obter_fluxo_inicial(self, documento):
         """
@@ -449,24 +434,21 @@ class SIEDocumentoDAO(SIE):
         return data + timedelta(days=dias)
 
 
-class _NumProcessoHandler(object):
+class _NumeroProcessoTipoDocumentoDAO(SIE):
     """ Classe helper para gerar os numeros de processo de documentos. """
     path = "NUMEROS_TIPO_DOC"
 
-    def __init__(self, api, id_tipo_documento, operador, ano=date.today().year):
+    def __init__(self, id_tipo_documento, ano=date.today().year):
         """
-        :param api: Instancia da API
-        :type api: UNIRIOAPIRequest
         :param id_tipo_documento: ID do tipo de documento que esta se lidando
         :type id_tipo_documento: int
         :param operador: Um dicionario referente a uma entrada na view V_FUNCIONARIO_IDS. Corresponde ao operador do sistema.
         :type operador: dict
         :param ano:
         """
-        self.api = api
-        self.ano = ano
-        self.operador = operador
+        super(_NumeroProcessoTipoDocumentoDAO, self).__init__()
         self.id_tipo_doc = id_tipo_documento
+        self.ano = ano
 
     def gerar_numero_processo(self):
         """
@@ -479,23 +461,24 @@ class _NumProcessoHandler(object):
         try:
             try:
                 mascara = self.__obter_mascara()
+                prox_numero = self.__proximo_numero_tipo_documento()
             except APIException as e:
                 raise SIEException("Erro obter mascara do tipo documento " + str(self.id_tipo_doc), e)
 
             if mascara == "pNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                numero = self.__gera_numero_processo_projeto("P")
+                numero = self.__gera_numero_processo_projeto(prox_numero, "P")
 
             elif mascara == "eNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                numero = self.__gera_numero_processo_projeto("e")
+                numero = self.__gera_numero_processo_projeto(prox_numero, "e")
 
             elif mascara == "xNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                numero = self.__gera_numero_processo_projeto("x")
+                numero = self.__gera_numero_processo_projeto(prox_numero, "x")
 
             elif mascara == "dNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                numero = self.__gera_numero_processo_projeto("d")
+                numero = self.__gera_numero_processo_projeto(prox_numero, "d")
 
             elif mascara == "NNNNNN/AAAA":  # TODO usar um parser de mascar em vez dessa gambi
-                numero = self.__gera_numero_processo_avaliacao_projeto()
+                numero = self.__gera_numero_processo_avaliacao_projeto(prox_numero)
             else:  # interpretar a mascara
                 # TODO Criar parser para mascara para entender como gerar o numero do processo de modo generico
                 return NotImplementedError
@@ -505,14 +488,13 @@ class _NumProcessoHandler(object):
 
     def reverter_ultimo_numero_processo(self):
         """ Reverte a geracao do ultimo numero de processo. """
-
         params = {"ID_TIPO_DOC": self.id_tipo_doc, "ANO_TIPO_DOC": self.ano}
-        fields = ["ID_NUMERO_TIPO_DOC", "NUM_ULTIMO_DOC"]
+        fields = ["NUM_ULTIMO_DOC"]
+
         try:
-            numero_tipo_doc = self.api.get_single_result(self.path, params, fields)
-            numero = numero_tipo_doc["NUM_ULTIMO_DOC"] - 1
+            valor_anterior = self.api.get_single_result(self.path, params, fields)["NUM_ULTIMO_DOC"] - 1  # TODO resolver problema de concorrencia
             try:
-                self.__atualizar_total_numero_ultimo_documento(numero_tipo_doc, numero)
+                self.__atualizar_ultimo_numero_tipo_documento(valor_anterior)
             except Exception as e:
                 raise SIEException("Erro ao reverter geracao de numero de processo.", e)
         except ValueError as e:
@@ -531,92 +513,56 @@ class _NumProcessoHandler(object):
         :raises: SIEException
         """
         params = {"ID_TIPO_DOC": self.id_tipo_doc, "ANO_TIPO_DOC": self.ano}
-        fields = ["ID_NUMERO_TIPO_DOC", "NUM_ULTIMO_DOC", "CONCORRENCIA"]
+        fields = ["NUM_ULTIMO_DOC"]
 
         try:
-            numero_tipo_doc = self.api.get_single_result(self.path, params, fields)
-            numero = numero_tipo_doc["NUM_ULTIMO_DOC"] + 1
+            numero_novo = self.api.get_single_result(self.path, params, fields)["NUM_ULTIMO_DOC"] + 1  # TODO resolver problema de concorrencia
             try:
-                self.__atualizar_total_numero_ultimo_documento(numero_tipo_doc, numero)
+                self.__atualizar_ultimo_numero_tipo_documento(numero_novo)
             except Exception as e:
-                raise SIEException("Erro ao gerir numeros de processo.", e)
-        except ValueError:
+                raise SIEException("Erro ao atualizar contador numero de processo para o tipo de documento %d" % self.id_tipo_doc, e)
+        except ValueError as e:
             # caso nao exista uma entrada na tabela, criar uma para comecar a gerir a sequencia de numeros de processo para esse tipo de documento/ano
-            self.__atualizar_indicadores_default()
-            numero = self.__criar_novo_numero_tipo_documento()
+            raise SIEException("Não existe entrada na tabela de numeros de processo para o tipo de documento %d" % self.id_tipo_doc, e)
 
-        return numero
+        return numero_novo
 
-    def __atualizar_indicadores_default(self):
-        """ O metodo atualiza todos os IND_DEFAULT para N para ID_TIPO_DOC da instancia """
-
-        # TODO checar se precisa do ano tambem como parametro aqui
-        numeros_documentos = self.api.get(self.path, {"ID_TIPO_DOC": self.id_tipo_doc}, ["ID_NUMERO_TIPO_DOC"])
-        for numero in numeros_documentos.content:
-            self.api.put(
-                self.path,
-                {
-                    "ID_NUMERO_TIPO_DOC": numero["ID_NUMERO_TIPO_DOC"],
-                    "IND_DEFAULT": "N"
-                }
-            )
-
-    def __atualizar_total_numero_ultimo_documento(self, numero_tipo_documento, numero):
+    def __atualizar_ultimo_numero_tipo_documento(self, valor):
         """
-        Atualiza o contador/sequence do numero de processo do tipo de documento especificado.
+        Atualiza o contador/sequence do numero de processo do tipo de documento especificado com o valor passado.
 
-        :param numero_tipo_documento: linha da tabela NUMEROS_TIPO_DOC
-        :type numero_tipo_documento: dict
-        :param numero: valor a ser assinalado
-        :type numero: int
+        :param valor: valor a ser assinalado como ultimo numero de processo do tipo de documento
+        :type valor: int
         :rtype: None
         """
-        id_numero_tipo_documento = numero_tipo_documento["ID_NUMERO_TIPO_DOC"]
+        params = {"ID_TIPO_DOC": self.id_tipo_doc, "ANO_TIPO_DOC": self.ano}
+        fields = ["ID_NUMERO_TIPO_DOC"]
+        numero_tipo_documento_row = self.api.get_single_result(self.path, params, fields)
         params = {
-            "ID_NUMERO_TIPO_DOC": id_numero_tipo_documento,
-            "NUM_ULTIMO_DOC": numero,
-            "COD_OPERADOR": self.operador,
+            "ID_NUMERO_TIPO_DOC": numero_tipo_documento_row["ID_NUMERO_TIPO_DOC"],
+            "NUM_ULTIMO_DOC": valor,
+            "COD_OPERADOR": self.usuario["ID_USUARIO"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
-            "CONCORRENCIA": numero_tipo_documento["CONCORRENCIA"] + 1
         }
         self.api.put(self.path, params)
 
-    def __criar_novo_numero_tipo_documento(self):
-        """
-        Cria uma nova linha na tabela para o tipo de documento usado.
-        Nela ficara o contador/sequence do numero de processo do tipo de documento especificado.
-
-        :rtype : int
-        :return: NUM_ULTIMO_DOC da insercao
-        """
-        # num_ultimo_doc retorna 1 para que nao seja necessario chamar novo metodo para atualizar
-        num_ultimo_doc = 1
-        params = {
-            "ID_TIPO_DOC": self.id_tipo_doc,
-            "ANO_TIPO_DOC": self.ano,
-            "IND_DEFAULT": "S",
-            "NUM_ULTIMO_DOC": num_ultimo_doc,
-            "COD_OPERADOR": self.operador,
-            "DT_ALTERACAO": date.today(),
-            "HR_ALTERACAO": strftime("%H:%M:%S"),
-            "CONCORRENCIA": 0
-        }
-        self.api.post(self.path, params)
-        return num_ultimo_doc
-
     @deprecated
-    def __gera_numero_processo_projeto(self, tipo):
-        """ Codigo especifico para gerar numero de processo de projetos
-            OBS: esse metodo eh temporario. Deve-se usar o parser generico. """
-        num_ultimo_doc = str(self.__proximo_numero_tipo_documento()).zfill(4)  # NNNN
+    def __gera_numero_processo_projeto(self, prox_numero, tipo):
+        """
+        Codigo especifico para gerar numero de processo de projetos
+        OBS: esse metodo eh temporario. Deve-se usar o parser generico.
+        """
+        num_ultimo_doc = str(prox_numero).zfill(4)  # NNNN
         num_processo = tipo + ("%s/%d" % (num_ultimo_doc, self.ano))  # _NNNN/AAAA
         return num_processo
 
     @deprecated
-    def __gera_numero_processo_avaliacao_projeto(self):
-        """ Codigo especifico para gerar numero de processo de avaliacoes de projeto
-            OBS: esse metodo eh temporario. Deve-se usar o parser generico. """
-        num_ultimo_doc = str(self.__proximo_numero_tipo_documento()).zfill(6)  # NNNNNN
+    def __gera_numero_processo_avaliacao_projeto(self, prox_numero):
+        """
+        Codigo especifico para gerar numero de processo de avaliacoes de projeto
+        OBS: esse metodo eh temporario. Deve-se usar o parser generico.
+        """
+        num_ultimo_doc = str(prox_numero).zfill(6)  # NNNNNN
         num_processo = "%s/%d" % (num_ultimo_doc, self.ano)  # NNNNNN/AAAA
         return num_processo
