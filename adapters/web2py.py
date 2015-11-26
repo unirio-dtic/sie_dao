@@ -23,8 +23,8 @@ class Web2pySIEAPIProvider(SIEDAOBaseAdapter):
         return current.api
 
     @property
-    def funcionario(self):
-        return current.session.funcionario
+    def usuario(self):
+        return current.session.usuario
 
     @staticmethod
     def handle_blob(arquivo):
@@ -35,15 +35,15 @@ class Web2pySIEAPIProvider(SIEDAOBaseAdapter):
         return file_b64
 
     def __post(self, path, params):
-        params.update({'COD_OPERADOR': self.funcionario.id_usuario})
+        params.update({'COD_OPERADOR': self.usuario['ID_USUARIO']})
         return self.__default_api.post(path, params)
 
     def __put(self, path, params):
-        params.update({'COD_OPERADOR': self.funcionario.id_usuario})
+        params.update({'COD_OPERADOR': self.usuario['ID_USUARIO']})
         return self.__default_api.put(path, params)
 
     def __delete(self, path, params):
-        params.update({'COD_OPERADOR': self.funcionario.id_usuario})
+        params.update({'COD_OPERADOR': self.usuario['ID_USUARIO']})
         return self.__default_api.delete(path, params)
 
     def __override_api_methods(self):

@@ -41,4 +41,4 @@ class SIE(object):
         """
         self.__adapter = adapter()
         self.api = self.__adapter.api
-        self.funcionario = self.__adapter.funcionario
+        self.usuario = self.__adapter.usuario

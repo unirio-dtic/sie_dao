@@ -12,7 +12,7 @@ class SIEDAOBaseAdapter(object):
         pass
 
     @abc.abstractproperty
-    def funcionario(self):
+    def usuario(self):
         """
         :rtype: dict
         """
