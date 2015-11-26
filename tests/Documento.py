@@ -1,3 +1,4 @@
+from datetime import date
 from sie.tests.base import SIETestCase
 
 __author__ = 'carlosfaruolo'
@@ -82,14 +83,35 @@ class TestDocumento(SIETestCase):
 
 # === _NumProcessoHandler ==============================================================================================
 
-    def test_gerar_numero_processo(self):
-        self.fail("Test not implemented")  # TODO implement this!
+    def __get_ultimo_numero_processo(self):
+            return self.dao.api.get_single_result("NUMEROS_TIPO_DOC", {"ID_TIPO_DOC": self.documento_valido["ID_TIPO_DOC"], "ANO_TIPO_DOC": date.today().year}, ["NUM_ULTIMO_DOC"])["NUM_ULTIMO_DOC"]
 
-    def test_gerar_numero_processo_documento_vazio(self):
-        self.fail("Test not implemented")  # TODO implement this!
+    def test_gerar_numero_processo(self):
+
+        previous_value = self.__get_ultimo_numero_processo()
+
+        from sie.SIEDocumento import _NumeroProcessoTipoDocumentoDAO
+        handler = _NumeroProcessoTipoDocumentoDAO(self.documento_valido["ID_TIPO_DOC"], self.funcionario_dummy)
+        handler.gerar_numero_processo()
+
+        new_value = self.__get_ultimo_numero_processo()
+        self.assertEqual(previous_value + 1, new_value)
+        try:
+            handler.reverter_ultimo_numero_processo()
+        except Exception:
+            pass
 
     def test_reverter_ultimo_numero_processo(self):
-        self.fail("Test not implemented")  # TODO implement this!
+        from sie.SIEDocumento import _NumeroProcessoTipoDocumentoDAO
+        handler = _NumeroProcessoTipoDocumentoDAO(self.documento_valido["ID_TIPO_DOC"], self.funcionario_dummy)
+        try:
+            handler.gerar_numero_processo()
+        except Exception:
+            pass
+        previous_value = self.__get_ultimo_numero_processo()
+        handler.reverter_ultimo_numero_processo()
+        new_value = self.__get_ultimo_numero_processo()
+        self.assertEqual(previous_value - 1, new_value)
 
 # ======================================================================================================================
 # more TODO: implement remaining tests

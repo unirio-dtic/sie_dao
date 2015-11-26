@@ -9,6 +9,7 @@ from unirio.api.exceptions import APIException
 
 __all__ = [
     "SIEDocumentoDAO",
+    "_NumeroProcessoTipoDocumentoDAO"
 ]
 
 
@@ -72,7 +73,7 @@ class SIEDocumentoDAO(SIE):
         :rtype: dict
         """
 
-        num_processo_handler = _NumProcessoHandler(self.api, novo_documento_params["ID_TIPO_DOC"], operador)
+        num_processo_handler = _NumeroProcessoTipoDocumentoDAO(novo_documento_params["ID_TIPO_DOC"], operador)
 
         # determinando ultimo numero
         num_processo = num_processo_handler.gerar_numero_processo()
@@ -434,8 +435,7 @@ class SIEDocumentoDAO(SIE):
 
         return fluxos.first()
 
-    @staticmethod
-    def __calcular_data_validade(data, dias):
+    def __calcular_data_validade(self, data, dias):
         """
         Autodocumentada.
 
@@ -449,21 +449,18 @@ class SIEDocumentoDAO(SIE):
         return data + timedelta(days=dias)
 
 
-class _NumProcessoHandler(object):
+class _NumeroProcessoTipoDocumentoDAO(SIE):
     """ Classe helper para gerar os numeros de processo de documentos. """
     path = "NUMEROS_TIPO_DOC"
 
-    def __init__(self, api, id_tipo_documento, operador, ano=date.today().year):
+    def __init__(self, id_tipo_documento, operador, ano=date.today().year):
         """
-        :param api: Instancia da API
-        :type api: UNIRIOAPIRequest
         :param id_tipo_documento: ID do tipo de documento que esta se lidando
         :type id_tipo_documento: int
         :param operador: Um dicionario referente a uma entrada na view V_FUNCIONARIO_IDS. Corresponde ao operador do sistema.
         :type operador: dict
         :param ano:
         """
-        self.api = api
         self.ano = ano
         self.operador = operador
         self.id_tipo_doc = id_tipo_documento
@@ -479,23 +476,24 @@ class _NumProcessoHandler(object):
         try:
             try:
                 mascara = self.__obter_mascara()
+                prox_numero = self.__proximo_numero_tipo_documento()
             except APIException as e:
                 raise SIEException("Erro obter mascara do tipo documento " + str(self.id_tipo_doc), e)
 
             if mascara == "pNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                numero = self.__gera_numero_processo_projeto("P")
+                numero = self.__gera_numero_processo_projeto(prox_numero, "P")
 
             elif mascara == "eNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                numero = self.__gera_numero_processo_projeto("e")
+                numero = self.__gera_numero_processo_projeto(prox_numero, "e")
 
             elif mascara == "xNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                numero = self.__gera_numero_processo_projeto("x")
+                numero = self.__gera_numero_processo_projeto(prox_numero, "x")
 
             elif mascara == "dNNNN/AAAA":  # TODO usar o parser de mascara ao inves dessa gambi
-                numero = self.__gera_numero_processo_projeto("d")
+                numero = self.__gera_numero_processo_projeto(prox_numero, "d")
 
             elif mascara == "NNNNNN/AAAA":  # TODO usar um parser de mascar em vez dessa gambi
-                numero = self.__gera_numero_processo_avaliacao_projeto()
+                numero = self.__gera_numero_processo_avaliacao_projeto(prox_numero)
             else:  # interpretar a mascara
                 # TODO Criar parser para mascara para entender como gerar o numero do processo de modo generico
                 return NotImplementedError
@@ -509,7 +507,7 @@ class _NumProcessoHandler(object):
         fields = ["NUM_ULTIMO_DOC"]
 
         try:
-            valor_anterior = self.api.get_single_result(self.path, params, fields)["NUM_ULTIMO_DOC"] - 1
+            valor_anterior = self.api.get_single_result(self.path, params, fields)["NUM_ULTIMO_DOC"] - 1  # TODO resolver problema de concorrencia
             try:
                 self.__atualizar_ultimo_numero_tipo_documento(valor_anterior)
             except Exception as e:
@@ -533,7 +531,7 @@ class _NumProcessoHandler(object):
         fields = ["NUM_ULTIMO_DOC"]
 
         try:
-            numero_novo = self.api.get_single_result(self.path, params, fields)["NUM_ULTIMO_DOC"] + 1
+            numero_novo = self.api.get_single_result(self.path, params, fields)["NUM_ULTIMO_DOC"] + 1  # TODO resolver problema de concorrencia
             try:
                 self.__atualizar_ultimo_numero_tipo_documento(numero_novo)
             except Exception as e:
@@ -553,30 +551,29 @@ class _NumProcessoHandler(object):
         :rtype: None
         """
         params = {"ID_TIPO_DOC": self.id_tipo_doc, "ANO_TIPO_DOC": self.ano}
-        fields = ["ID_NUMERO_TIPO_DOC", "CONCORRENCIA"]
+        fields = ["ID_NUMERO_TIPO_DOC"]
         numero_tipo_documento_row = self.api.get_single_result(self.path, params, fields)
         params = {
             "ID_NUMERO_TIPO_DOC": numero_tipo_documento_row["ID_NUMERO_TIPO_DOC"],
             "NUM_ULTIMO_DOC": valor,
-            "COD_OPERADOR": self.operador,
+            "COD_OPERADOR": self.operador["ID_USUARIO"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
-            "CONCORRENCIA": numero_tipo_documento_row["CONCORRENCIA"] + 1
         }
         self.api.put(self.path, params)
 
     @deprecated
-    def __gera_numero_processo_projeto(self, tipo):
+    def __gera_numero_processo_projeto(self, prox_numero, tipo):
         """ Codigo especifico para gerar numero de processo de projetos
             OBS: esse metodo eh temporario. Deve-se usar o parser generico. """
-        num_ultimo_doc = str(self.__proximo_numero_tipo_documento()).zfill(4)  # NNNN
+        num_ultimo_doc = str(prox_numero).zfill(4)  # NNNN
         num_processo = tipo + ("%s/%d" % (num_ultimo_doc, self.ano))  # _NNNN/AAAA
         return num_processo
 
     @deprecated
-    def __gera_numero_processo_avaliacao_projeto(self):
+    def __gera_numero_processo_avaliacao_projeto(self, prox_numero):
         """ Codigo especifico para gerar numero de processo de avaliacoes de projeto
             OBS: esse metodo eh temporario. Deve-se usar o parser generico. """
-        num_ultimo_doc = str(self.__proximo_numero_tipo_documento()).zfill(6)  # NNNNNN
+        num_ultimo_doc = str(prox_numero).zfill(6)  # NNNNNN
         num_processo = "%s/%d" % (num_ultimo_doc, self.ano)  # NNNNNN/AAAA
         return num_processo
