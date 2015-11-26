@@ -14,8 +14,8 @@ def encoded_tab_estruturada(encoding):
     def actualDecorator(fn):
         from functools import wraps
         @wraps(fn)
-        def wrapper(self, *args):
-            lista = fn(self, *args)
+        def wrapper(self, *args, **kwargs):
+            lista = fn(self, *args, **kwargs)
             if lista:
                 lista = [(item, descricao.encode(encoding)) for (item, descricao) in lista]  # encoda segundo item (texto do banco)
             return lista
