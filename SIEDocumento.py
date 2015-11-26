@@ -14,7 +14,6 @@ __all__ = [
 
 class SIEDocumentoDAO(SIE):
 
-    # ******************************** Constantes ***********************************
     # Valores de prioridade de documento
 
     TRAMITACAO_PRIORIDADE_NORMAL = 2
@@ -34,23 +33,8 @@ class SIEDocumentoDAO(SIE):
     # Paths para busca na api
 
     path = "DOCUMENTOS"
-    """ Caminho da API para trabalhar com documentos """
-
     tramite_path = "TRAMITACOES"
-    """ Caminho da API para trabalhar com tramitações """
-
     fluxo_path = "FLUXOS"
-    """ Caminho da API para trabalhar com fluxos de tramitacoes """
-
-    # *******************************************************************************
-
-    def __init__(self, operador=None):
-        """
-        :param operador: Um dicionario referente a uma entrada na view V_FUNCIONARIO_IDS. Corresponde ao operador do sistema. Pode ser omitido se apenas os metodos de consulta forem utilizados.
-        :type operador: dict
-        """
-        super(SIEDocumentoDAO, self).__init__()
-        self.operador = operador
 
     def criar_documento(self, novo_documento_params):
         """
@@ -159,7 +143,7 @@ class SIEDocumentoDAO(SIE):
         documento_atualizado = {
             "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
             "SITUACAO_ATUAL": fluxo["SITUACAO_FUTURA"],
-            "COD_OPERADOR": self.operador["ID_USUARIO"],
+            "COD_OPERADOR": self.usuario["ID_USUARIO"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
             "CONCORRENCIA": documento["CONCORRENCIA"] + 1
@@ -259,7 +243,6 @@ class SIEDocumentoDAO(SIE):
         try:
             # Pega a tramitacao atual
             tramitacao = self.obter_tramitacao_atual(documento)  # Espera uma linha de tramitação com status 'T'
-            funcionario = self.operador
 
             if self.__is_destino_fluxo_definido_externamente(fluxo):
                 if not resolvedor_destino:
@@ -279,11 +262,11 @@ class SIEDocumentoDAO(SIE):
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_ENTREGUE,
                 "IND_RETORNO_OBRIG": SIEDocumentoDAO.TRAMITACAO_IND_RETORNO_OBRIG_CONFORME_FLUXO,
                 "ID_FLUXO": fluxo["ID_FLUXO"],
-                "COD_OPERADOR": funcionario["ID_USUARIO"],
+                "COD_OPERADOR": self.usuario["ID_USUARIO"],
                 "DT_ALTERACAO": date.today(),
                 "HR_ALTERACAO": strftime("%H:%M:%S"),
                 "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1,
-                "ID_USUARIO_INFO": funcionario["ID_USUARIO"],
+                "ID_USUARIO_INFO": self.usuario["ID_USUARIO"],
                 "DT_DESPACHO": date.today(),
                 "HR_DESPACHO": strftime("%H:%M:%S"),
                 "ID_APLIC_ACAO": fluxo["ID_APLIC_ACAO"]
@@ -314,7 +297,7 @@ class SIEDocumentoDAO(SIE):
             tramitacao = self.obter_tramitacao_atual(documento)
             tramitacao.update({
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO,
-                "COD_OPERADOR": self.operador["ID_USUARIO"],
+                "COD_OPERADOR": self.usuario["ID_USUARIO"],
                 "DT_ALTERACAO": date.today(),
                 "HR_ALTERACAO": strftime("%H:%M:%S"),
                 "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1
