@@ -123,7 +123,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         documentoDAO.tramitar_documento(documento, fluxo)
 
         #atualizar projeto com avaliacao_item pendente.
-        SIEProjetosPesquisa().atualizar_projeto({
+        self.atualizar_projeto({
             "ID_PROJETO":relatorio.id_projeto,
             "AVALIACAO_ITEM": SIEProjetosPesquisa.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE_AVALIACAO
         })
@@ -262,7 +262,6 @@ class SIEProjetosPesquisa(SIEProjetos):
         :param projeto: Um projeto a ser inserido no banco
         :return: Um dicionário contendo a entrada uma nova entrada da tabela PROJETOS
         """
-<<<<<<< HEAD
 
         projeto_padrao = {
             "EVENTO_TAB": self.COD_TABELA_TIPO_EVENTO,
@@ -280,10 +279,6 @@ class SIEProjetosPesquisa(SIEProjetos):
         }
 
         projeto.update(projeto_padrao)
-=======
-        projeto.update(self.projeto_padrao)
->>>>>>> dev/adapters
-
         try:
             novo_projeto = self.api.post(self.path, projeto)
             projeto.update({'id_projeto': novo_projeto.insertId})
@@ -451,11 +446,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         """
         pass
 
-<<<<<<< HEAD
     def is_pendente(self,id_projeto,params_prod_inst):
-=======
-    def is_pendente(self, id_projeto):
->>>>>>> dev/adapters
         """
         Verifica se o projeto está pendente.
         Atualmente:
@@ -471,33 +462,19 @@ class SIEProjetosPesquisa(SIEProjetos):
         data_cadastro = datetime.strptime(projeto[u'DT_INICIAL'], '%Y-%m-%d').date()
         data_inicio = min(data_inicio, data_cadastro)
 
-<<<<<<< HEAD
         no_dias_limite = self.TEMPO_ISENCAO_RELATORIO*30.5 # TODO 30.5 é uma aproximacao para mes, já que timedelta não tal diferenca
         data_limite_avaliacao = datetime.strptime(params_prod_inst["DT_TERMINO_AVAL"], '%Y-%m-%d').date()
         dias_de_projeto_ate_final_avaliacao = (data_limite_avaliacao-data_inicio).days
-=======
-        no_dias_limite = self.TEMPO_ISENCAO_RELATORIO * 30.5  # 30.5 é uma aproximacao para mes, já que timedelta não tal diferenca
-        dias_de_projeto_ate_hoje = (date.today() - data_inicio).days
->>>>>>> dev/adapters
         # idade
         if no_dias_limite > dias_de_projeto_ate_final_avaliacao:
             # cai no limite de dias de cadastro/projeto
             return False
         else:
-<<<<<<< HEAD
             #checa se qual a situação do projeto (AVALIACAO_ITEM)
             situacao_projeto_pendente = projeto[u'AVALIACAO_ITEM']==SIEProjetosPesquisa.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_NAO_AVALIADO
             if situacao_projeto_pendente:
                 return True
             return False
-=======
-            # checa se há relatório docente enviado para aquela vigencia
-            ano_vigente = SIEParametrosDAO().parametros_prod_inst()["ANO_REF_AVAL"]
-            ha_avaliacao = SIEAvaliacaoProjsPesquisaDAO().get_avaliacao(ano_vigente, id_projeto)
-            if ha_avaliacao:
-                return False
-            return True
->>>>>>> dev/adapters
 
 
 class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
