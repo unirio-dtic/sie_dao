@@ -55,9 +55,6 @@ class SIEDocumentoDAO(SIE):
         :param novo_documento_params: Um dicionario contendo parametros para criar o documento.
         :type novo_documento_params: dict
 
-        :param operador: Um dicionario referente a uma entrada na view V_FUNCIONARIO_IDS. Corresponde ao operador do sistema.
-        :type operador: dict
-
         :return: Um dicionario contendo a entrada da tabela DOCUMENTOS correspondente ao documento criado.
         :rtype: dict
         """
@@ -107,13 +104,11 @@ class SIEDocumentoDAO(SIE):
         if response.affectedRows > 0:
             del documento
 
-    def tramitar_documento(self, operador, documento, fluxo, resolvedor_destino=None):
+    def tramitar_documento(self, documento, fluxo, resolvedor_destino=None):
         """
         Envia o documento seguindo o fluxo especificado.
         Caso o fluxo especificado tenha a flag IND_QUERY='S', ou seja, o tipo_destino e id_destino devem ser obtidos atraves de uma query adicional, eh necessario o especificar o parametro resolvedor_destino com um callable que retorna o TIPO_DESTINO e ID_DESTINO corretos.
 
-        :param operador: Um dicionario referente a uma entrada na view V_FUNCIONARIO_IDS. Corresponde ao operador do sistema.
-        :type operador: dict
         :param documento: Um dicionario contendo uma entrada da tabela DOCUMENTOS
         :type documento: dict
         :param fluxo: Um dicionario referente a uma entrada na tabela FLUXOS
@@ -122,9 +117,9 @@ class SIEDocumentoDAO(SIE):
         :type resolvedor_destino: callable
         """
         # No SIE, tramitar documento eh atualizar a situacao da tramitacao (e outros campos) e definir o fluxo dela
-        self._marcar_tramitacao_atual_entregue(operador, documento, fluxo, resolvedor_destino)
+        self._marcar_tramitacao_atual_entregue( documento, fluxo, resolvedor_destino)
 
-    def receber_documento(self, operador, documento):
+    def receber_documento(self,documento):
         """
         Marca o documento como recebido pela instituicao destinataria da tramitacao atual do documento.
         Normalmente esse metodo deve ser usado para emular a abertura da tramitacao atraves da caixa postal do SIE.
@@ -132,15 +127,13 @@ class SIEDocumentoDAO(SIE):
         :param documento: Um dicionario contendo uma entrada da tabela DOCUMENTOS
         :type documento: dict
         """
-        self._marcar_tramitacao_atual_recebida(operador, documento)
-        self._criar_registro_tramitacao(operador, documento)
+        self._marcar_tramitacao_atual_recebida(documento)
+        self._criar_registro_tramitacao(documento)
 
-    def atualizar_situacao_documento(self, operador, documento, fluxo):
+    def atualizar_situacao_documento(self, documento, fluxo):
         """
         Atualiza o documento na tabela com os dados do fluxo especificado. Normalmente chamado apos uma tramitacao for concluida.
 
-        :param operador: Um dicionario referente a uma entrada na view V_FUNCIONARIO_IDS. Corresponde ao operador do sistema.
-        :type operador: dict
         :param documento: Um dicionario contendo uma entrada da tabela DOCUMENTOS
         :type documento: dict
         :param fluxo: Um dicionario referente a uma entrada na tabela FLUXOS
@@ -149,7 +142,6 @@ class SIEDocumentoDAO(SIE):
         documento_atualizado = {
             "ID_DOCUMENTO": documento["ID_DOCUMENTO"],
             "SITUACAO_ATUAL": fluxo["SITUACAO_FUTURA"],
-            "COD_OPERADOR": self.usuario["ID_USUARIO"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
         }
@@ -177,7 +169,6 @@ class SIEDocumentoDAO(SIE):
             "DT_ENVIO": date.today(),
             "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_AGUARDANDO,
             "IND_RETORNO_OBRIG": SIEDocumentoDAO.TRAMITACAO_IND_RETORNO_OBRIG_NAO,
-            "COD_OPERADOR": documento["COD_OPERADOR"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
             "PRIORIDADE_TAB": 5101,  # Tabela estruturada utilizada para indicar o nivel de prioridade
@@ -189,7 +180,7 @@ class SIEDocumentoDAO(SIE):
 
         return tramitacao
 
-    def _criar_registro_tramitacao(self, operador, documento):
+    def _criar_registro_tramitacao(self,documento):
         """
         Cria um registro novo na tabela de tramitacoes para esse documento.
 
@@ -218,7 +209,6 @@ class SIEDocumentoDAO(SIE):
             "DT_ENVIO": date.today(),
             "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_AGUARDANDO,
             "IND_RETORNO_OBRIG": SIEDocumentoDAO.TRAMITACAO_IND_RETORNO_OBRIG_NAO,
-            "COD_OPERADOR": operador["ID_USUARIO"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
             "PRIORIDADE_TAB": 5101,
@@ -230,12 +220,10 @@ class SIEDocumentoDAO(SIE):
 
         return tramitacao
 
-    def _marcar_tramitacao_atual_entregue(self, operador, documento, fluxo, resolvedor_destino=None):
+    def _marcar_tramitacao_atual_entregue(self, documento, fluxo, resolvedor_destino=None):
         """
         Marca a tramitacao atual como entregue, atualiza os campos necessarios e define o fluxo especificado na tramitacao.
 
-        :param operador: Um dicionario referente a uma entrada na view V_FUNCIONARIO_IDS. Corresponde ao operador do sistema.
-        :type operador: dict
         :param documento: Um dicionario contendo uma entrada da tabela DOCUMENTOS
         :type documento: dict
         :param fluxo: Um dicionario referente a uma entrada na tabela FLUXOS
@@ -267,7 +255,6 @@ class SIEDocumentoDAO(SIE):
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_ENTREGUE,
                 "IND_RETORNO_OBRIG": SIEDocumentoDAO.TRAMITACAO_IND_RETORNO_OBRIG_CONFORME_FLUXO,
                 "ID_FLUXO": fluxo["ID_FLUXO"],
-                "COD_OPERADOR": self.usuario["ID_USUARIO"],
                 "DT_ALTERACAO": date.today(),
                 "HR_ALTERACAO": strftime("%H:%M:%S"),
                 "CONCORRENCIA": tramitacao["CONCORRENCIA"] + 1,
@@ -280,20 +267,18 @@ class SIEDocumentoDAO(SIE):
             self.api.put(self.tramite_path, tramitacao)
 
             try:
-                self.atualizar_situacao_documento(operador, documento, fluxo)
+                self.atualizar_situacao_documento(documento, fluxo)
             except APIException as e:
                 raise SIEException("Nao foi possivel atualizar o documento", e)
 
         except (APIException, SIEException) as e:
             raise SIEException("Nao foi possivel tramitar o documento", e)
 
-    def _marcar_tramitacao_atual_recebida(self, operador, documento):
+    def _marcar_tramitacao_atual_recebida(self,documento):
         """
         Marca o documento como recebido na tramitacao atual do documento
         Esse metodo deve ser usado para emular a abertura da tramitacao atraves da caixa postal do SIE.
 
-        :param operador: Um dicionario referente a uma entrada na view V_FUNCIONARIO_IDS. Corresponde ao operador do sistema.
-        :type operador: dict
         :param documento: Um dicionario contendo uma entrada da tabela DOCUMENTOS
         :type documento: dict
         :raises: SIEException
@@ -303,7 +288,6 @@ class SIEDocumentoDAO(SIE):
             tramitacao = self.obter_tramitacao_atual(documento)
             tramitacao.update({
                 "SITUACAO_TRAMIT": SIEDocumentoDAO.TRAMITACAO_SITUACAO_RECEBIDO,
-                "COD_OPERADOR": self.usuario["ID_USUARIO"],
                 "DT_ALTERACAO": date.today(),
                 "HR_ALTERACAO": strftime("%H:%M:%S"),
             })
@@ -442,8 +426,6 @@ class _NumeroProcessoTipoDocumentoDAO(SIE):
         """
         :param id_tipo_documento: ID do tipo de documento que esta se lidando
         :type id_tipo_documento: int
-        :param operador: Um dicionario referente a uma entrada na view V_FUNCIONARIO_IDS. Corresponde ao operador do sistema.
-        :type operador: dict
         :param ano:
         """
         super(_NumeroProcessoTipoDocumentoDAO, self).__init__()
@@ -541,7 +523,6 @@ class _NumeroProcessoTipoDocumentoDAO(SIE):
         params = {
             "ID_NUMERO_TIPO_DOC": numero_tipo_documento_row["ID_NUMERO_TIPO_DOC"],
             "NUM_ULTIMO_DOC": valor,
-            "COD_OPERADOR": self.usuario["ID_USUARIO"],
             "DT_ALTERACAO": date.today(),
             "HR_ALTERACAO": strftime("%H:%M:%S"),
         }

@@ -455,7 +455,7 @@ class SIEArquivosProj(SIE):
             "TIPO_ARQUIVO_TAB": self.COD_TABELA_TIPO_ARQUIVO,
             "TIPO_ARQUIVO_ITEM": tipo_arquivo,
             "NOME_ARQUIVO": nome_arquivo,
-            "CONTEUDO_ARQUIVO": SIE.handle_blob(arquivo)
+            "CONTEUDO_ARQUIVO": self.handle_blob(arquivo)
         }
 
         try:

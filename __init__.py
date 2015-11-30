@@ -39,6 +39,11 @@ class SIE(object):
         """
         :type adapter: SIEDAOBaseAdapter
         """
+
         self.__adapter = adapter()
         self.api = self.__adapter.api
         self.usuario = self.__adapter.usuario
+
+
+    def handle_blob(self, arquivo):
+        return self.__adapter.handle_blob(arquivo) #TODO descarta @staticmethod...

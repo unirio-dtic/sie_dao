@@ -17,7 +17,7 @@ class SIETestCase(unittest.TestCase):
         self.api = UNIRIOAPIRequest(self.API_KEY_VALID, env, debug=True, cache=None)
         current.api = self.api
         current.session = Storage()
-        current.session.funcionario = Storage()
+        current.session.usuario = Storage()
 
     def _random_string(self, length):
         return ''.join(random.choice(string.lowercase) for i in xrange(length))

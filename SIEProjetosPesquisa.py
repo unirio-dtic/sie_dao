@@ -111,14 +111,14 @@ class SIEProjetosPesquisa(SIEProjetos):
         documento = documentoDAO.criar_documento(documento_avaliacao)  # PASSO 1
 
         # cria avaliacao para o arquivo
-
-        avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,params_projeto,data_prorrogacao=relatorio.nova_data_conclusao)
+        #TODO verificar se há avaliação criada antes de criar.
+        avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,params_projeto,data_prorrogacao=relatorio.nova_data_conclusao,obs=relatorio.obs)
 
         # atualizar ref tabela de arquivos.
         SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"],
                                             {"ID_AVALIACAO_PROJ": avaliacao["ID_AVALIACAO_PROJ"]})
 
-        fluxo = SIEDocumentoDAO().obter_fluxo_inicial(documento)
+        fluxo = documentoDAO.obter_fluxo_inicial(documento)
 
         # tramita para a câmara
         documentoDAO.tramitar_documento(documento, fluxo)
@@ -464,7 +464,7 @@ class SIEProjetosPesquisa(SIEProjetos):
         data_inicio = min(data_inicio, data_cadastro)
 
         no_dias_limite = self.TEMPO_ISENCAO_RELATORIO*30.5 # TODO 30.5 é uma aproximacao para mes, já que timedelta não tal diferenca
-        data_limite_avaliacao = datetime.strptime(params_prod_inst["DT_TERMINO_AVAL"], '%Y-%m-%d').date()
+        data_limite_avaliacao = datetime.strptime(params_prod_inst["DT_TERMINO_AVAL"], '%Y-%m-%d').date() # Será DT_TERMINO ou DT_INICIO
         dias_de_projeto_ate_final_avaliacao = (data_limite_avaliacao-data_inicio).days
         # idade
         if no_dias_limite > dias_de_projeto_ate_final_avaliacao:
@@ -476,6 +476,9 @@ class SIEProjetosPesquisa(SIEProjetos):
             if situacao_projeto_pendente:
                 return True
             return False
+
+
+
 
 
 class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
@@ -621,7 +624,7 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         else:
             return situacao_projeto
 
-    def criar_avaliacao(self,id_projeto,documento,params_projeto_pesquisa,data_prorrogacao=False):
+    def criar_avaliacao(self,id_projeto,documento,params_projeto_pesquisa,data_prorrogacao=False,obs=''):
         """
         :param id_projeto:
         :param documento:
@@ -651,6 +654,11 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         if data_prorrogacao:
             avaliacao_default.update({
                 'DT_CONCLUSAO': data_prorrogacao
+            })
+
+        if obs:
+            avaliacao_default.update({
+                'OBS_PRORROGACAO':obs
             })
 
         try:
