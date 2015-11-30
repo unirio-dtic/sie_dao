@@ -101,6 +101,10 @@ class SIEProjetosPesquisa(SIEProjetos):
 
     def enviar_relatorio_docente(self, relatorio, params_projeto):
 
+        ha_avaliacao = SIEAvaliacaoProjsPesquisaDAO().get_avaliacao(params_projeto['ANO_REF_AVAL'],relatorio.id_projeto,params_projeto["PERIODO_REF_TAB"],params_projeto["PERIODO_REF_ITEM"])
+        if ha_avaliacao:
+            raise SIEException("Já há avaliação cadastrada para este projeto neste período de avaliação.")
+
         arquivo_salvo = SIEArquivosProj().salvar_arquivo(nome_arquivo=relatorio.filename,
                                                          arquivo=relatorio.arquivo,
                                                          id_projeto=relatorio.id_projeto,
@@ -111,7 +115,6 @@ class SIEProjetosPesquisa(SIEProjetos):
         documento = documentoDAO.criar_documento(documento_avaliacao)  # PASSO 1
 
         # cria avaliacao para o arquivo
-        #TODO verificar se há avaliação criada antes de criar.
         avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,params_projeto,data_prorrogacao=relatorio.nova_data_conclusao,obs=relatorio.obs)
 
         # atualizar ref tabela de arquivos.
@@ -667,7 +670,6 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         except APIException:
             avaliacao_default = None
         return avaliacao_default
-
 
 class SIECandidatosBolsistasProjsPesquisa(SIE):
     """

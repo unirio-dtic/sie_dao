@@ -319,12 +319,14 @@ class SIEAvaliacaoProjDAO(SIE):
     def __init__(self):
         super(SIEAvaliacaoProjDAO,self).__init__()
 
-    def get_avaliacao(self,ano_ref,id_projeto):
+    def get_avaliacao(self,ano_ref,id_projeto,periodo_ref_tab,periodo_ref_item):
         """
         Retorna uma row da tabela AVALIACOES_PROJ -> indica que já foi criada uma avaliação para aquele projeto no ano de referencia.
         Tal row só é criada quando o docente envia um relatório de pesquisa.
 
         :param ano_ref: ano de referencia
+        :param periodo_ref_tab: tab do periodo
+        :param periodo_ref_item: ano de referencia
         :param id_projeto: id do projeto
         :return: dicionário contendo informações da linha respectiva no bd
 
@@ -332,6 +334,8 @@ class SIEAvaliacaoProjDAO(SIE):
         params = {
             "ID_PROJETO": id_projeto,
             "ANO_REF":ano_ref,
+            "PERIODO_REF_TAB": periodo_ref_tab,
+            "PERIODO_REF_ITEM": periodo_ref_item
         }
 
         return self.api.get_single_result(self.path, params, bypass_no_content_exception=True)
