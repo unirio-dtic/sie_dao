@@ -49,8 +49,6 @@ class SIEProjetosPesquisa(SIEProjetos):
     ITEM_FUNCOES_ORGAOS_AGENCIA_FOMENTO = 4
     ITEM_ESTADO_REGULAR = 1
 
-    TEMPO_ISENCAO_RELATORIO = 8  # tempo que é dado de isenção entre cadastro e cobrança de relatório.
-
     TIPO_DOCUMENTO = 217
 
     SITUACAO_ATIVO = 'A'
@@ -449,40 +447,6 @@ class SIEProjetosPesquisa(SIEProjetos):
         :return:
         """
         pass
-
-    def is_pendente(self,id_projeto,params_prod_inst):
-        """
-        Verifica se o projeto está pendente.
-        Atualmente:
-            * se a data mais antiga entre cadastro e inicio é menor que 8 meses -> isento
-            * senão, enviou o relatório docente atual (e antigos?)
-
-        :param id_projeto:
-        :return:
-        """
-
-        projeto = self.get_projeto(id_projeto)
-        data_inicio = datetime.strptime(projeto[u'DT_REGISTRO'], '%Y-%m-%d').date()
-        data_cadastro = datetime.strptime(projeto[u'DT_INICIAL'], '%Y-%m-%d').date()
-        data_inicio = min(data_inicio, data_cadastro)
-
-        no_dias_limite = self.TEMPO_ISENCAO_RELATORIO*30.5 # TODO 30.5 é uma aproximacao para mes, já que timedelta não tal diferenca
-        data_limite_avaliacao = datetime.strptime(params_prod_inst["DT_TERMINO_AVAL"], '%Y-%m-%d').date() # Será DT_TERMINO ou DT_INICIO
-        dias_de_projeto_ate_final_avaliacao = (data_limite_avaliacao-data_inicio).days
-        # idade
-        if no_dias_limite > dias_de_projeto_ate_final_avaliacao:
-            # cai no limite de dias de cadastro/projeto
-            return False
-        else:
-            #checa se qual a situação do projeto (AVALIACAO_ITEM)
-            situacao_projeto_pendente = projeto[u'AVALIACAO_ITEM']==SIEProjetosPesquisa.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_NAO_AVALIADO
-            if situacao_projeto_pendente:
-                return True
-            return False
-
-
-
-
 
 class SIEOrgaosProjsPesquisa(SIEOrgaosProjetos):
     COD_SITUACAO_ATIVO = "A"
