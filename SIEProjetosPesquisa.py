@@ -26,7 +26,7 @@ class SIEProjetosPesquisa(SIEProjetos):
     COD_TABELA_SITUACAO = 6011
 
     ITEM_TAB_ESTRUTURADA_DESCRICAO_CAMPO = 0
-    ITEM_TITULACAO_SUPERIOR_INCOMPLETO = 9
+    ITEM_TITULACAO_INDEFINIDA = 99
     ITEM_FUNDACOES_NAO_SE_APLICA = 1  # => Não se aplica
     ITEM_TIPO_EVENTO_NAO_SE_APLICA = 1  # => Não se aplica
     ITEM_TIPO_PUBLICO_3_GRAU = 8  # => 3o grau
@@ -784,7 +784,8 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
         participante.update({
             'FUNCAO_TAB': SIEProjetosPesquisa.COD_TABELA_FUNCOES_PROJ,
             'TITULACAO_TAB': SIEProjetosPesquisa.COD_TABELA_TITULACAO,
-            'SITUACAO': self.COD_SITUACAO_ATIVO
+            'SITUACAO': self.COD_SITUACAO_ATIVO,
+            'TITULACAO_ITEM': SIEProjetosPesquisa.ITEM_TITULACAO_INDEFINIDA
         })
         return self.api.post(self.path, participante)
 
@@ -879,10 +880,9 @@ class SIEParticipantesProjsPesquisa(SIEParticipantesProjs):
             "DT_INICIAL": form.vars.dt_final,
             "DT_FINAL": form.vars.dt_inicial,
             "CARGA_HORARIA": form.vars.carga_horaria,
-            # "TITULACAO_ITEM": form.vars.titulacao,
             "DESCR_MAIL": form.vars.descr_mail,
             "CH_SUGERIDA": form.vars.carga_horaria,
-            # "LINK_LATTES": form.vars.link_lattes,
+            "LINK_LATTES": form.vars.link_lattes,
             "FUNCAO_ITEM": form.vars.funcao,
         }
 
