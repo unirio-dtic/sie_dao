@@ -58,24 +58,6 @@ class SIEProjetosPesquisa(SIEProjetos):
     def __init__(self):
         super(SIEProjetosPesquisa, self).__init__()
 
-    @property
-    def projeto_padrao(self):
-        return {
-            "EVENTO_TAB": self.COD_TABELA_TIPO_EVENTO,
-            "EVENTO_ITEM": self.ITEM_TIPO_EVENTO_NAO_SE_APLICA,
-            "TIPO_PUBLICO_TAB": self.COD_TABELA_TIPO_PUBLICO_ALVO,
-            "TIPO_PUBLICO_ITEM": self.ITEM_TIPO_PUBLICO_3_GRAU,
-            "ACESSO_PARTICIP": self.ACESSO_PARTICIPANTES_APENAS_COORDENADOR,
-            "PAGA_BOLSA": self.NAO_PAGA_BOLSA,
-            "AVALIACAO_TAB": self.COD_TABELA_AVALIACAO_PROJETOS_INSTITUICAO,
-            "AVALIACAO_ITEM": self.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE,
-            'ID_CLASSIFICACAO': self.ITEM_CLASSIFICACAO_PROJETO_PESQUISA,
-            'SITUACAO_TAB': self.COD_TABELA_SITUACAO,
-            'SITUACAO_ITEM': self.ITEM_SITUACAO_TRAMITE_REGISTRO,
-            'FUNDACAO_TAB': self.COD_TABELA_FUNDACOES,
-            "DT_REGISTRO": date.today()
-        }
-
     def get_agencia_fomento(self, id_projeto):
         """
 

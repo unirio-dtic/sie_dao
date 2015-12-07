@@ -13,6 +13,8 @@ class SIETabEstruturada(SIE):
     path = "TAB_ESTRUTURADA"
     COD_TABELA_ESTADOS = 206
 
+    COD_IND_ATIVO = 'S'
+
     def __init__(self):
         super(SIETabEstruturada, self).__init__()
         self.cacheTime *= 2
@@ -52,7 +54,8 @@ class SIETabEstruturada(SIE):
         params = {
             "COD_TABELA": COD_TABELA,
             "LMIN": 0,
-            "LMAX": 99999
+            "LMAX": 99999,
+            "IND_ATIVO": self.COD_IND_ATIVO
         }
         fields = ["ITEM_TABELA", "DESCRICAO"]
         try:
