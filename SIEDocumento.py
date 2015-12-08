@@ -71,13 +71,20 @@ class SIEDocumentoDAO(SIE):
             id_documento = self.api.post(self.path, novo_documento_params).insertId
             novo_documento = self.api.get_single_result(self.path, {"ID_DOCUMENTO": id_documento})
 
-            # criando entrada na tabela de tramitacoes (pre-etapa)
-            self.__adiciona_registro_inicial_tramitacao(novo_documento)
-
-            _EstadosDocumentosDAO().ativar_documento(id_documento)
-
         except APIException as e:
             num_processo_handler.reverter_ultimo_numero_processo()
+            raise e
+
+        # criando entrada na tabela de tramitacoes (pre-etapa)
+        try:
+            self.__adiciona_registro_inicial_tramitacao(novo_documento)
+        except APIException as e:
+            #TODO REVERTER CRIACAO DO DOCUMENTO e ULTIMO NÚMERO PROCESSO.
+            raise e
+        try:
+            _EstadosDocumentosDAO().ativar_documento(id_documento)
+        except APIException as e:
+            #TODO REVERTER CRIACAO DO ULTIMO NÚMERO PROCESSO DOCUMENTO e DA TRAMITACAO.
             raise e
 
         return novo_documento

@@ -5,7 +5,7 @@ class SIEDAOBaseAdapter(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractproperty
-    def api(self):
+    def _default_api(self):
         """
         :rtype: APIable
         """
