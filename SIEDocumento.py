@@ -74,6 +74,8 @@ class SIEDocumentoDAO(SIE):
             # criando entrada na tabela de tramitacoes (pre-etapa)
             self.__adiciona_registro_inicial_tramitacao(novo_documento)
 
+            _EstadosDocumentosDAO().ativar_documento(id_documento)
+
         except APIException as e:
             num_processo_handler.reverter_ultimo_numero_processo()
             raise e
@@ -416,6 +418,31 @@ class SIEDocumentoDAO(SIE):
         :return: Retorna a data enviada, acrescida da quantidade de dias
         """
         return data + timedelta(days=dias)
+
+class _EstadosDocumentosDAO(SIE):
+    path = "ESTADOS_DOCUMENTOS"
+
+    COD_TABELA_SITUACAO_DOCUMENTO = 2001
+    ITEM_SITUACAO_DOCUMENTO_ATIVO = 1
+
+    def __init__(self):
+        super(_EstadosDocumentosDAO).__init__()
+
+
+    def ativar_documento(self,id_documento):
+        """
+        Insere uma linha em 'ESTADOS_DOCUMENTOS' com a situacao 'ativa'. Com isso ele supostamente aparece na caixa postal dos usuários.
+        :param id_documento:
+        :return:
+        """
+        documento_ativo={
+            "ID_DOCUMENTO":id_documento,
+            "COD_SITUACAO_TAB": self.COD_TABELA_SITUACAO_DOCUMENTO,
+            "COD_SITUACAO_ITEM": self.ITEM_SITUACAO_DOCUMENTO_ATIVO
+        }
+
+        self.api.post(self.path,documento_ativo)
+
 
 
 class _NumeroProcessoTipoDocumentoDAO(SIE):
