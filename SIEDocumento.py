@@ -426,7 +426,7 @@ class _EstadosDocumentosDAO(SIE):
     ITEM_SITUACAO_DOCUMENTO_ATIVO = 1
 
     def __init__(self):
-        super(_EstadosDocumentosDAO).__init__()
+        super(_EstadosDocumentosDAO,self).__init__()
 
 
     def ativar_documento(self,id_documento):
