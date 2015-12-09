@@ -450,6 +450,48 @@ class _EstadosDocumentosDAO(SIE):
 
         self.api.post(self.path,documento_ativo)
 
+class SIEAssuntosDAO(SIE):
+    path = "ASSUNTOS"
+    primary_key = "ID_ASSUNTO" #TODO Começo a achar que isso resolve metade de alguns problemas.
+
+
+    def __init__(self):
+        super(SIEAssuntosDAO,self).__init__()
+
+
+    def get_by_id(self,identifier):
+        """
+        Retorna a única linha da tabela que tem o id passado, se o mesmo existir, None c.c.
+        :param identifier:
+        :return:
+        """
+
+        #TODO Acho que esse método está genérico suficiente para representar esse tipo de comportamento comum.
+        where = {
+            self.primary_key:identifier
+        }
+
+        return self.api.get_single_result(self.path,where,bypass_no_content_exception=True)
+
+
+class SIETiposDocumentosDAO(SIE):
+    path = "TIPOS_DOCUMENTOS"
+
+    def __init__(self):
+        super(SIETiposDocumentosDAO,self).__init__()
+
+
+    def obter_parametros_tipo_documento(self,id_tipo_doc):
+
+        where = {
+            "ID_TIPO_DOC": id_tipo_doc
+        }
+
+        return self.api.get_single_result(self.path,where)
+
+
+    def obter_mascara(self,id_tipo_doc):
+        return self.obter_parametros_tipo_documento(id_tipo_doc)["MASCARA_TIPO_DOC"].strip()  # strip eh necessario pois mascara vem com whitespaces no final(pq???). ']
 
 
 class _NumeroProcessoTipoDocumentoDAO(SIE):
@@ -476,7 +518,7 @@ class _NumeroProcessoTipoDocumentoDAO(SIE):
         """
         try:
             try:
-                mascara = self.__obter_mascara()
+                mascara = SIETiposDocumentosDAO().obter_mascara(self.id_tipo_doc)
                 prox_numero = self.__proximo_numero_tipo_documento()
             except APIException as e:
                 raise SIEException("Erro obter mascara do tipo documento " + str(self.id_tipo_doc), e)
@@ -516,8 +558,6 @@ class _NumeroProcessoTipoDocumentoDAO(SIE):
         except ValueError as e:
             raise SIEException("Nao existem registros de numeros de processo para o tipo de documento " + str(self.id_tipo_doc), e)
 
-    def __obter_mascara(self):
-        return self.api.get_single_result("TIPOS_DOCUMENTOS", {"ID_TIPO_DOC": self.id_tipo_doc}, ["MASCARA_TIPO_DOC"])["MASCARA_TIPO_DOC"].strip()  # strip eh necessario pois mascara vem com whitespaces no final(pq???).
 
     def __proximo_numero_tipo_documento(self):
         """

@@ -1,12 +1,12 @@
 # coding=utf-8
 
 import base64
-from datetime import date
+from datetime import date, datetime,timedelta
 from deprecate import deprecated
 
 from sie import SIE
 from sie.SIEBolsistas import SIEBolsas, SIEBolsistas
-from sie.SIEDocumento import SIEDocumentoDAO
+from sie.SIEDocumento import SIEDocumentoDAO,SIETiposDocumentosDAO,SIEAssuntosDAO
 from sie.SIEFuncionarios import SIEFuncionarios
 from sie.SIETabEstruturada import SIETabEstruturada
 
@@ -292,6 +292,10 @@ class SIEProjetos(SIE):
 
     def documento_inicial_padrao(self):
         #todo Property ?
+
+        infos_tipo_documento = SIETiposDocumentosDAO().obter_parametros_tipo_documento(self.TIPO_DOCUMENTO)
+        assunto_relacionado = SIEAssuntosDAO().get_by_id(infos_tipo_documento['ID_ASSUNTO_PADRAO'])
+
         return {
             "ID_TIPO_DOC": self.TIPO_DOCUMENTO,
             "ID_PROCEDENCIA": self.usuario["ID_CONTRATO_RH"],
@@ -304,12 +308,17 @@ class SIEProjetos(SIE):
             "TIPO_PROPRIETARIO": 20, # Indica a restrição de usuário
             # "TIPO_ORIGEM": 20,  # atualizacao do sie Out/2015
             "DT_CRIACAO": date.today(),
+            "HR_CRIACAO":datetime.now().time().strftime("%H:%M:%S"),
             "IND_ELIMINADO": "N",
             "IND_AGENDAMENTO": "N",
             "IND_RESERVADO": "N",
             "IND_EXTRAVIADO": "N",
             "TEMPO_ESTIMADO": 1,
-            # "SEQUENCIA": 1  # atualizacao do sie Out/2015
+            "ID_ASSUNTO": assunto_relacionado['ID_ASSUNTO'],
+            "RESUMO_ASSUNTO": assunto_relacionado['DESCR_ASSUNTO'],
+            "DT_LIMITE_ARQ": date.today()+timedelta(days=int(assunto_relacionado['TEMPO_ARQUIVAMENTO'])) # TODO Se for None, qual o comportamento esperado?
+            #"OBSERVACOES": ?? Não estamos usando.
+                        # "SEQUENCIA": 1  # atualizacao do sie Out/2015
         }
 
 
