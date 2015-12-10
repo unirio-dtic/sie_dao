@@ -91,6 +91,11 @@ class SIEProjetosPesquisa(SIEProjetos):
                                                          tipo_arquivo=SIEArquivosProj.ITEM_TIPO_ARQUIVO_RELATORIO_DOCENTE)
 
         documento_avaliacao = SIEAvaliacaoProjsPesquisaDAO().documento_inicial_padrao()
+
+        documento_avaliacao.update({
+            "RESUMO_ASSUNTO": "Projeto nº "+ self.get_projeto(relatorio.id_projeto)['NUM_PROCESSO'].strip() #TODO Verificar se essa é a lógica exata.
+        })
+
         documentoDAO = SIEDocumentoDAO()
         documento = documentoDAO.criar_documento(documento_avaliacao)  # PASSO 1
 
@@ -555,6 +560,8 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
     def __init__(self):
         super(SIEAvaliacaoProjDAO, self).__init__()
 
+
+
     def _resolve_situacao_avaliacao(self, situacao_projeto, prorrogacao):
         """Resolve o valor da coluna 'SITUACAO_ITEM' da avaliação a ser criada.
         TODO Existem casos não previstos?
@@ -565,6 +572,7 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         :returns: A situação que deve ser utilizada.
         :rtype: int
         """
+        #TODO O que fazer com esse método. Não sabemos se isso será usado ou não!
 
         if situacao_projeto == SIEProjetosPesquisa.ITEM_SITUACAO_SUSPENSO:
             return SIEProjetosPesquisa.ITEM_SITUACAO_ANDAMENTO
@@ -589,9 +597,11 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
             "TIPO_AVAL_TAB": self.COD_TABELA_TIPO_AVALIACAO,
             "TIPO_AVAL_ITEM": self.ITEM_TIPO_AVALIACAO_PROJETO,
             "SITUACAO_TAB": SIEProjetosPesquisa.COD_TABELA_SITUACAO,
-            "SITUACAO_ITEM": self._resolve_situacao_avaliacao(projeto['SITUACAO_ITEM'],data_prorrogacao),
-            "ANO_REF": params_projeto_pesquisa["ANO_REF_AVAL"]  # TODO  em tese, o ano de referencia é o ano atual de avaliação, pois nenhum projeto pode pedir bolsas sem estar 'em andamento' e para estar 'em andamento' os relatórios não podem estar atrasados -> só falta o relatório atual
-
+            "SITUACAO_ITEM": projeto['SITUACAO_ITEM'], # Atualizado conforme e-mail de 9 de dezembro de 2015 23:33 da Síntese.
+            "ANO_REF": params_projeto_pesquisa["ANO_REF_AVAL"],  # TODO  em tese, o ano de referencia é o ano atual de avaliação, pois nenhum projeto pode pedir bolsas sem estar 'em andamento' e para estar 'em andamento' os relatórios não podem estar atrasados -> só falta o relatório atual
+            "DT_CONCLUSAO": data_prorrogacao if data_prorrogacao else projeto['DT_CONCLUSAO'],
+            "ID_CONTRATO_RH": self.usuario['ID_CONTRATO_RH'],
+            "ID_UNIDADE": self.usuario['ID_LOT_OFICIAL']
         }
 
         avaliacao_default.update({
@@ -599,11 +609,6 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
             "ID_DOCUMENTO": documento['ID_DOCUMENTO'],
             "NUM_PROCESSO": documento["NUM_PROCESSO"]
         })
-
-        if data_prorrogacao:
-            avaliacao_default.update({
-                'DT_CONCLUSAO': data_prorrogacao
-            })
 
         if obs:
             avaliacao_default.update({

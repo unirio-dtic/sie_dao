@@ -16,7 +16,7 @@ class SIEFuncionarioID(SIE):
 
 
 class SIEFuncionarios(SIE):
-    path = "FUNCIONARIOS"
+    path = "FUNCIONARIOS" # TODO Isso tá me enganando. Não existe consulta a essa tabela!
 
     def __init__(self):
         """ """
