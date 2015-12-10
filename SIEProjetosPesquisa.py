@@ -4,7 +4,7 @@ from sie.SIETabEstruturada import SIETabEstruturada
 from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj, SIEOrgaosProjetos, SIEAvaliacaoProjDAO
 from sie.SIEDocumento import SIEDocumentoDAO
 from sie.SIEParametros import SIEParametrosDAO
-from sie.sie_utils import campos_sie_lower
+from sie.sie_utils import campos_sie_lower,remover_acentos_query
 from sie import SIE, SIEException
 from pydal.objects import Row
 from datetime import date, datetime
@@ -321,6 +321,9 @@ class SIEProjetosPesquisa(SIEProjetos):
         return SIETabEstruturada().get_drop_down_options(self.COD_TABELA_FUNCOES_PROJ, funcoes_proibidas)
 
     def get_membros_comunidade_like(self, query):
+
+        query = remover_acentos_query(query)
+
         params = {"LMIN": 0,
                   "LMAX": 99999,
                   "NOME": query,
@@ -334,6 +337,9 @@ class SIEProjetosPesquisa(SIEProjetos):
             return []
 
     def get_orgaos_like(self, query):
+
+        query = remover_acentos_query(query)
+
         params = {"LMIN": 0,
                   "LMAX": 99999,
                   "NOME_UNIDADE": query,
@@ -345,6 +351,8 @@ class SIEProjetosPesquisa(SIEProjetos):
             return res.content if res is not None else []
         except ValueError:
             return []
+
+
 
     def get_orgao(self, id_origem, origem):
 

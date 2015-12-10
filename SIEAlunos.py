@@ -1,5 +1,6 @@
 # coding=utf-8
 from sie import SIE
+from sie_utils import remover_acentos_query
 
 __all__ = ["SIEAlunos"]
 
@@ -45,7 +46,7 @@ class SIEAlunos(SIE):
         return self.api.get("V_ALUNOS_ATIVOS", {"CPF_SEM_MASCARA": cpf}, cache_time=self.cacheTime).content[0]
 
     def get_alunos_ativos_graduacao(self,nome_ou_nomes):
-        return self.get_alunos_ativos(nome_ou_nomes,"graduação")
+        return self.get_alunos_ativos(nome_ou_nomes,"graduacao")
 
     def get_alunos_ativos(self,nome_ou_nomes,tipo=None):
         """
@@ -53,6 +54,9 @@ class SIEAlunos(SIE):
         :param nome_ou_nomes: string usada em uma query de like no bd
         :return: lista de alunos que dão match na string passada em query
         """
+
+        nome_ou_nomes = remover_acentos_query(nome_ou_nomes)
+
         params = {"LMIN": 0,
                   "LMAX": 999,
                   "NOME":nome_ou_nomes

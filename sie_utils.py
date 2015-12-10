@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 from deprecate import deprecated
+from tirador_de_acentos import remover_acentos
 
 __author__ = 'raulbarbosa'
 
@@ -46,6 +47,13 @@ def campos_sie_lower(lista):
         lista_final.append(novo_item)
     return lista_final
 
+
+def remover_acentos_query(query):
+    if isinstance(query, list):
+        query = map(remover_acentos, query)
+    else:
+        query = remover_acentos(query)
+    return query
 
 def sie_date_to_str():
     raise NotImplementedError
