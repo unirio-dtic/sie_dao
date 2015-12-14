@@ -459,7 +459,7 @@ class SIEArquivosProj(SIE):
 
         fields = ["NOME_ARQUIVO", "CONTEUDO_ARQUIVO"]
         try:
-            arquivo = self.api.get(self.path, params, fields, 0).content
+            arquivo = self.api.get(self.path, params, fields, 0).content #TODO Esse cara vem em base64?
         except (ValueError, AttributeError):
             arquivo = None
         return arquivo

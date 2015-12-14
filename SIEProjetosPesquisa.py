@@ -92,15 +92,16 @@ class SIEProjetosPesquisa(SIEProjetos):
 
         documento_avaliacao = SIEAvaliacaoProjsPesquisaDAO().documento_inicial_padrao()
 
+        projeto =  self.get_projeto(relatorio.id_projeto)
         documento_avaliacao.update({
-            "RESUMO_ASSUNTO": "Projeto nº "+ self.get_projeto(relatorio.id_projeto)['NUM_PROCESSO'].strip() #TODO Verificar se essa é a lógica exata.
+            "RESUMO_ASSUNTO": "Projeto n"+u"\u00BA " + projeto['NUM_PROCESSO'].strip() #TODO Verificar se essa é a lógica exata.
         })
 
         documentoDAO = SIEDocumentoDAO()
         documento = documentoDAO.criar_documento(documento_avaliacao)  # PASSO 1
 
         # cria avaliacao para o arquivo
-        avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(relatorio.id_projeto,documento,params_projeto,data_prorrogacao=relatorio.nova_data_conclusao,obs=relatorio.obs)
+        avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(projeto,documento,params_projeto,data_prorrogacao=relatorio.nova_data_conclusao,obs=relatorio.obs)
 
         # atualizar ref tabela de arquivos.
         SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"],
@@ -589,7 +590,7 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         else:
             return situacao_projeto
 
-    def criar_avaliacao(self,id_projeto,documento,params_projeto_pesquisa,data_prorrogacao=False,obs=''):
+    def criar_avaliacao(self,projeto,documento,params_projeto_pesquisa,data_prorrogacao=False,obs=''):
         """
         :param id_projeto:
         :param documento:
@@ -597,7 +598,7 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         :param prorrogacao:
         :return:
         """
-        projeto = SIEProjetosPesquisa().get_projeto(id_projeto)
+        #projeto = SIEProjetosPesquisa().get_projeto(id_projeto)
 
         avaliacao_default = {
             "PERIODO_REF_TAB": params_projeto_pesquisa["PERIODO_REF_TAB"],
@@ -613,7 +614,7 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         }
 
         avaliacao_default.update({
-            "ID_PROJETO": id_projeto,
+            "ID_PROJETO": projeto['ID_PROJETO'],
             "ID_DOCUMENTO": documento['ID_DOCUMENTO'],
             "NUM_PROCESSO": documento["NUM_PROCESSO"]
         })

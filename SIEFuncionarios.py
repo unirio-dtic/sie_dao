@@ -43,7 +43,7 @@ class SIEFuncionarios(SIE):
             raise e
 
     def get_funcionario(self, cpf):
-        return self.api.get("V_FUNCIONARIOS", params={"CPF": cpf}, cache_time=self.cacheTime).content[0]
+        return self.api.get("V_FUNCIONARIOS", params={"CPF": cpf}, cache_time=0).content[0]
 
 
 class SIEDocentes(SIE):
@@ -74,6 +74,6 @@ class SIEDocentes(SIE):
             "NOME_DOCENTE"
         ]
 
-        return self.api.get_single_result(self.path,params,cache_time=10000)
+        return self.api.get_single_result(self.path,params,cache_time=0)
 
 
