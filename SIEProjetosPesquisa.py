@@ -89,36 +89,59 @@ class SIEProjetosPesquisa(SIEProjetos):
             if not avaliacao_com_professor:
                 raise SIEException("Já há avaliação cadastrada para este projeto neste período de avaliação. Caso queira enviar outra avaliação, entre em contato com a DPq.")
             else:
-                #...
-                #TODO O que fazer quando a avaliação deve ser reenviada.
-                raise NotImplementedError
+                #Salva relatorio
+                arquivo_salvo = SIEArquivosProj().salvar_arquivo(nome_arquivo=relatorio.filename,
+                                                             arquivo=relatorio.arquivo,
+                                                             id_projeto=relatorio.id_projeto,
+                                                             tipo_arquivo=SIEArquivosProj.ITEM_TIPO_ARQUIVO_RELATORIO_DOCENTE)
+
+                # atualizar ref tabela de arquivos com id da avaliacao
+                SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"],
+                                                {"ID_AVALIACAO_PROJ": avaliacao["ID_AVALIACAO_PROJ"]})
+
+                #obtem estado atual
+                documento = documento_dao.obter_documento(avaliacao["ID_DOCUMENTO"])
+                tramitacao_atual = documento_dao.obter_tramitacao_atual(documento)
+
+                #recebe documento se necessario
+                if tramitacao_atual["SITUACAO_TRAMIT"]==SIEDocumentoDAO.TRAMITACAO_SITUACAO_ENTREGUE:
+                    documento_dao.receber_documento(documento)
+                elif tramitacao_atual["SITUACAO_TRAMIT"]==SIEDocumentoDAO.TRAMITACAO_SITUACAO_AGUARDANDO:
+                    #Só tramitar
+                    pass
+                else:
+                    #Shouldn't fall here.
+                    raise NotImplementedError
+
+                # tramita para DPq de novo.
+                fluxo = documento_dao.obter_fluxo_inicial(documento) #TODO É o fluxo inicial? Me parece ser! Senão seria o último.
+                documento_dao.tramitar_documento(documento, fluxo)
 
         else:
+            #Salva relatorio
             arquivo_salvo = SIEArquivosProj().salvar_arquivo(nome_arquivo=relatorio.filename,
                                                              arquivo=relatorio.arquivo,
                                                              id_projeto=relatorio.id_projeto,
                                                              tipo_arquivo=SIEArquivosProj.ITEM_TIPO_ARQUIVO_RELATORIO_DOCENTE)
 
+            #cria documento avaliacao
             documento_avaliacao = SIEAvaliacaoProjsPesquisaDAO().documento_inicial_padrao()
-
             projeto =  self.get_projeto(relatorio.id_projeto)
             documento_avaliacao.update({
                 "RESUMO_ASSUNTO": "Projeto n"+u"\u00BA " + projeto['NUM_PROCESSO'].strip() # Parece ser.
             })
-
-
             documento = documento_dao.criar_documento(documento_avaliacao)  # PASSO 1
 
             # cria avaliacao para o arquivo
             avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(projeto,documento,params_projeto,data_prorrogacao=relatorio.nova_data_conclusao,obs=relatorio.obs)
 
-            # atualizar ref tabela de arquivos.
+            # atualizar ref tabela de arquivos com id da avaliacao
             SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"],
                                                 {"ID_AVALIACAO_PROJ": avaliacao["ID_AVALIACAO_PROJ"]})
 
-            fluxo = documento_dao.obter_fluxo_inicial(documento)
 
             # tramita para a câmara
+            fluxo = documento_dao.obter_fluxo_inicial(documento)
             documento_dao.tramitar_documento(documento, fluxo)
 
             #atualizar projeto com avaliacao_item pendente.

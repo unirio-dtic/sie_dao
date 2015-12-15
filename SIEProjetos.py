@@ -328,7 +328,7 @@ class SIEAvaliacaoProjDAO(SIE):
     def __init__(self):
         super(SIEAvaliacaoProjDAO,self).__init__()
 
-    def get_avaliacao(self,ano_ref,id_projeto,periodo_ref_tab,periodo_ref_item):
+    def get_avaliacao(self,ano_ref,id_projeto,periodo_ref_tab=None,periodo_ref_item=None):
         """
         Retorna uma row da tabela AVALIACOES_PROJ -> indica que já foi criada uma avaliação para aquele projeto no ano de referencia.
         Tal row só é criada quando o docente envia um relatório de pesquisa.
@@ -342,10 +342,18 @@ class SIEAvaliacaoProjDAO(SIE):
         """
         params = {
             "ID_PROJETO": id_projeto,
-            "ANO_REF":ano_ref,
-            "PERIODO_REF_TAB": periodo_ref_tab,
-            "PERIODO_REF_ITEM": periodo_ref_item
+            "ANO_REF":ano_ref
         }
+
+        if periodo_ref_item:
+            params.update({
+                "PERIODO_REF_ITEM": periodo_ref_item
+            })
+
+        if periodo_ref_tab:
+            params.update({
+                "PERIODO_REF_TAB": periodo_ref_tab
+            })
 
         return self.api.get_single_result(self.path, params, bypass_no_content_exception=True)
 
@@ -392,6 +400,8 @@ class SIEArquivosProj(SIE):
     ITEM_TIPO_ARQUIVO_PARECER_CEUA = 18
     ITEM_TIPO_ARQUIVO_PLANO_DE_ESTUDOS = 15
     ITEM_TIPO_ARQUIVO_RELATORIO_DOCENTE = 14
+    ITEM_TIPO_ARQUIVO_PONTUACAO_LATTES = 10
+    ITEM_TIPO_ARQUIVO_CURRICULO_LATTES = 12
 
     def __init__(self):
         super(SIEArquivosProj, self).__init__()
