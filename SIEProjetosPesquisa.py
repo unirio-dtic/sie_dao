@@ -81,42 +81,51 @@ class SIEProjetosPesquisa(SIEProjetos):
 
     def enviar_relatorio_docente(self, relatorio, params_projeto):
 
-        ha_avaliacao = SIEAvaliacaoProjsPesquisaDAO().get_avaliacao(params_projeto['ANO_REF_AVAL'],relatorio.id_projeto,params_projeto["PERIODO_REF_TAB"],params_projeto["PERIODO_REF_ITEM"])
-        if ha_avaliacao:
-            raise SIEException("Já há avaliação cadastrada para este projeto neste período de avaliação.")
+        documento_dao = SIEDocumentoDAO()
 
-        arquivo_salvo = SIEArquivosProj().salvar_arquivo(nome_arquivo=relatorio.filename,
-                                                         arquivo=relatorio.arquivo,
-                                                         id_projeto=relatorio.id_projeto,
-                                                         tipo_arquivo=SIEArquivosProj.ITEM_TIPO_ARQUIVO_RELATORIO_DOCENTE)
+        avaliacao = SIEAvaliacaoProjsPesquisaDAO().get_avaliacao(params_projeto['ANO_REF_AVAL'],relatorio.id_projeto,params_projeto["PERIODO_REF_TAB"],params_projeto["PERIODO_REF_ITEM"])
+        if avaliacao:
+            avaliacao_com_professor = SIEAvaliacaoProjsPesquisaDAO().is_avaliacao_com_professor(avaliacao)
+            if not avaliacao_com_professor:
+                raise SIEException("Já há avaliação cadastrada para este projeto neste período de avaliação. Caso queira enviar outra avaliação, entre em contato com a DPq.")
+            else:
+                #...
+                #TODO O que fazer quando a avaliação deve ser reenviada.
+                raise NotImplementedError
 
-        documento_avaliacao = SIEAvaliacaoProjsPesquisaDAO().documento_inicial_padrao()
+        else:
+            arquivo_salvo = SIEArquivosProj().salvar_arquivo(nome_arquivo=relatorio.filename,
+                                                             arquivo=relatorio.arquivo,
+                                                             id_projeto=relatorio.id_projeto,
+                                                             tipo_arquivo=SIEArquivosProj.ITEM_TIPO_ARQUIVO_RELATORIO_DOCENTE)
 
-        projeto =  self.get_projeto(relatorio.id_projeto)
-        documento_avaliacao.update({
-            "RESUMO_ASSUNTO": "Projeto n"+u"\u00BA " + projeto['NUM_PROCESSO'].strip() #TODO Verificar se essa é a lógica exata.
-        })
+            documento_avaliacao = SIEAvaliacaoProjsPesquisaDAO().documento_inicial_padrao()
 
-        documentoDAO = SIEDocumentoDAO()
-        documento = documentoDAO.criar_documento(documento_avaliacao)  # PASSO 1
+            projeto =  self.get_projeto(relatorio.id_projeto)
+            documento_avaliacao.update({
+                "RESUMO_ASSUNTO": "Projeto n"+u"\u00BA " + projeto['NUM_PROCESSO'].strip() # Parece ser.
+            })
 
-        # cria avaliacao para o arquivo
-        avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(projeto,documento,params_projeto,data_prorrogacao=relatorio.nova_data_conclusao,obs=relatorio.obs)
 
-        # atualizar ref tabela de arquivos.
-        SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"],
-                                            {"ID_AVALIACAO_PROJ": avaliacao["ID_AVALIACAO_PROJ"]})
+            documento = documento_dao.criar_documento(documento_avaliacao)  # PASSO 1
 
-        fluxo = documentoDAO.obter_fluxo_inicial(documento)
+            # cria avaliacao para o arquivo
+            avaliacao = SIEAvaliacaoProjsPesquisaDAO().criar_avaliacao(projeto,documento,params_projeto,data_prorrogacao=relatorio.nova_data_conclusao,obs=relatorio.obs)
 
-        # tramita para a câmara
-        documentoDAO.tramitar_documento(documento, fluxo)
+            # atualizar ref tabela de arquivos.
+            SIEArquivosProj().atualizar_arquivo(arquivo_salvo["ID_ARQUIVO_PROJ"],
+                                                {"ID_AVALIACAO_PROJ": avaliacao["ID_AVALIACAO_PROJ"]})
 
-        #atualizar projeto com avaliacao_item pendente.
-        self.atualizar_projeto({
-            "ID_PROJETO":relatorio.id_projeto,
-            "AVALIACAO_ITEM": SIEProjetosPesquisa.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE_AVALIACAO
-        })
+            fluxo = documento_dao.obter_fluxo_inicial(documento)
+
+            # tramita para a câmara
+            documento_dao.tramitar_documento(documento, fluxo)
+
+            #atualizar projeto com avaliacao_item pendente.
+            self.atualizar_projeto({
+                "ID_PROJETO":relatorio.id_projeto,
+                "AVALIACAO_ITEM": SIEProjetosPesquisa.ITEM_AVALIACAO_PROJETOS_INSTITUICAO_PENDENTE_AVALIACAO
+            })
 
     def registrar_projeto(self, id_projeto):
         """
@@ -565,6 +574,7 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
     COD_TABELA_TIPO_AVALIACAO = 6016
     ITEM_TIPO_AVALIACAO_PROJETO = 1
 
+    COD_SITUACAO_COM_COORDENADOR = 1
 
     def __init__(self):
         super(SIEAvaliacaoProjDAO, self).__init__()
@@ -630,6 +640,20 @@ class SIEAvaliacaoProjsPesquisaDAO(SIEAvaliacaoProjDAO):
         except APIException:
             avaliacao_default = None
         return avaliacao_default
+
+    def is_avaliacao_com_professor(self,avaliacao):
+        """
+        Método retorna se a avaliação passada como parâmetro está com o professor ( e o mesmo pode reenviar relatório) ou não.
+
+        :param avaliacao: avaliação contendo ID_DOCUMENTO obrigatoriamente.
+        :type avaliacao: dict
+        """
+
+        id_documento_avaliacao = avaliacao["ID_DOCUMENTO"]
+
+        documento_avaliacao = SIEDocumentoDAO().obter_documento(id_documento_avaliacao)
+
+        return int(documento_avaliacao['SITUACAO_ATUAL']) == self.COD_SITUACAO_COM_COORDENADOR
 
 class SIECandidatosBolsistasProjsPesquisa(SIE):
     """
