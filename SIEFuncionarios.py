@@ -18,6 +18,8 @@ class SIEFuncionarioID(SIE):
 class SIEFuncionarios(SIE):
     path = "FUNCIONARIOS" # TODO Isso tá me enganando. Não existe consulta a essa tabela!
 
+    ID_GRUPO_ADMIN_PROJETOS_PESQUISA = 107
+
     def __init__(self):
         """ """
 
@@ -44,6 +46,14 @@ class SIEFuncionarios(SIE):
 
     def get_funcionario(self, cpf):
         return self.api.get("V_FUNCIONARIOS", params={"CPF": cpf}, cache_time=0).content[0]
+
+    def is_adm(self,id_usuario):
+        where = {
+            'ID_USUARIO':id_usuario,
+            'ID_GRUPO':self.ID_GRUPO_ADMIN_PROJETOS_PESQUISA # TODO Adicionar questão de super usuários?
+        }
+
+        return self.api.get_single_result("V_USUARIOS_GRUPOS",where,bypass_no_content_exception=True)
 
 
 class SIEDocentes(SIE):
