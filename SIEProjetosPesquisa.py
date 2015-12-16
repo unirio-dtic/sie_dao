@@ -699,14 +699,15 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
             "ID_PROJETO": candidato['projeto_pesquisa'],
             "ID_CURSO_ALUNO": candidato['id_curso_aluno'],
             "ID_PLANO_ESTUDO": id_plano_de_estudos,
+            "RENOVACAO": "S" if candidato['renovacao'] else "N",
+            "INOVACAO": candidato['inovacao']
         }
 
         if candidato['link_lattes']:
             candidato_bolsista.update({"LINK_LATTES": candidato['link_lattes']})
         if candidato['descr_mail']:
             candidato_bolsista.update({"DESCR_MAIL": candidato['descr_mail']})
-        if candidato['renovacao']:
-            candidato_bolsista.update({"RENOVACAO": "S"})
+
 
         # ESSE ERA O ANTIGO. DEIXAR AQUI POIS NUNCA SE SABE.
         # candidato_bolsista = {
@@ -793,9 +794,16 @@ class SIECandidatosBolsistasProjsPesquisa(SIE):
         })
         return self.api.post(self.path, candidato)
 
-    def inserir_candidato_bolsista(self, candidato, id_plano_estudos):
+    def inserir_candidato_bolsista(self, candidato, id_plano_estudos,coordenador):
 
         candidato_bolsista = SIECandidatosBolsistasProjsPesquisa().from_candidato_item(candidato, id_plano_estudos)
+
+        #Adiciona infos gambiarradas de coordenador
+        candidato_bolsista.update({
+            "TITULACAO_MAX": coordenador['titulacao'],
+            "REGIME": coordenador['regime']
+        })
+
         ano_ref = SIEParametrosDAO().parametros_prod_inst()[
             "ANO_REF_AVAL"]  # TODO em tese, o ano de referencia é o ano atual??
 
