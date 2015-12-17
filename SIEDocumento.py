@@ -539,10 +539,11 @@ class _NumeroProcessoTipoDocumentoDAO(SIE):
                 numero = self.__gera_numero_processo_avaliacao_projeto(prox_numero)
             else:  # interpretar a mascara
                 # TODO Criar parser para mascara para entender como gerar o numero do processo de modo generico
-                return NotImplementedError
+
+                raise NotImplementedError
             return numero
         except Exception as e:
-            raise SIEException("Erro ao gerar numero de processo.", e)
+            raise e#raise SIEException("Erro ao gerar numero de processo.", e)
 
     def reverter_ultimo_numero_processo(self):
         """ Reverte a geracao do ultimo numero de processo. """
@@ -559,6 +560,42 @@ class _NumeroProcessoTipoDocumentoDAO(SIE):
             raise SIEException("Nao existem registros de numeros de processo para o tipo de documento " + str(self.id_tipo_doc), e)
 
 
+    def atualizar_indicadores_default(self):
+        """
+        O método atualiza todos os IND_DEFAULT para N para ID_TIPO_DOC da instãncia
+
+        """
+        numerosDocumentos = self.api.get(
+            self.path,
+            {"ID_TIPO_DOC": self.id_tipo_doc},
+            ["ID_NUMERO_TIPO_DOC"]
+        )
+        for numero in numerosDocumentos.content:
+            self.api.put(
+                self.path,
+                {
+                    "ID_NUMERO_TIPO_DOC": numero["ID_NUMERO_TIPO_DOC"],
+                    "IND_DEFAULT": "N"
+                }
+            )
+
+    def criar_novo_numero_tipo_documento(self):
+        """
+
+        NUM_ULTIMO_DOC retorna 1 para que não seja necessário chamar novo método para atualizar
+        :rtype : int
+        :return: NUM_ULTIMO_DOC da inserção
+        """
+        NUM_ULTIMO_DOC = 1
+        params = {
+            "ID_TIPO_DOC": self.id_tipo_doc,
+            "ANO_TIPO_DOC": self.ano,
+            "IND_DEFAULT": "S",
+            "NUM_ULTIMO_DOC": NUM_ULTIMO_DOC
+        }
+        self.api.post(self.path, params)
+        return NUM_ULTIMO_DOC
+
     def __proximo_numero_tipo_documento(self):
         """
         O metodo retorna qual sera o proximo NUM_TIPO_DOC que sera utilizado. Caso ja exista
@@ -573,13 +610,16 @@ class _NumeroProcessoTipoDocumentoDAO(SIE):
 
         try:
             numero_novo = self.api.get_single_result(self.path, params, fields)["NUM_ULTIMO_DOC"] + 1  # TODO resolver problema de concorrencia
+
             try:
                 self.__atualizar_ultimo_numero_tipo_documento(numero_novo)
             except Exception as e:
                 raise SIEException("Erro ao atualizar contador numero de processo para o tipo de documento %d" % self.id_tipo_doc, e)
         except ValueError as e:
             # caso nao exista uma entrada na tabela, criar uma para comecar a gerir a sequencia de numeros de processo para esse tipo de documento/ano
-            raise SIEException("Não existe entrada na tabela de numeros de processo para o tipo de documento %d" % self.id_tipo_doc, e)
+            # SIEException("Não existe entrada na tabela de numeros de processo para o tipo de documento %d" % self.id_tipo_doc, e)
+            self.atualizar_indicadores_default()
+            numero_novo = self.criar_novo_numero_tipo_documento()
 
         return numero_novo
 
