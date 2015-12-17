@@ -59,7 +59,9 @@ class SIEAlunos(SIE):
 
         params = {"LMIN": 0,
                   "LMAX": 999,
-                  "NOME":nome_ou_nomes
+                  "NOME":nome_ou_nomes,
+                  "ORDERBY":"NOME",
+                  "SORT":"ASC"
                   }
 
         if tipo:

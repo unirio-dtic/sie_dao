@@ -360,6 +360,8 @@ class SIEProjetosPesquisa(SIEProjetos):
         params = {"LMIN": 0,
                   "LMAX": 99999,
                   "NOME": query,
+                  "ORDERBY":"NOME",
+                  "SORT":"ASC"
                   }
 
         # fields = ['NOME','ID_PESSOA','MATRICULA','DESCRICAO_VINCULO']
@@ -376,6 +378,8 @@ class SIEProjetosPesquisa(SIEProjetos):
         params = {"LMIN": 0,
                   "LMAX": 99999,
                   "NOME_UNIDADE": query,
+                  "ORDERBY":"NOME_UNIDADE",
+                  "SORT":"ASC"
                   }
 
         # fields = ['NOME_UNIDADE','ID_ORIGEM','ORIGEM']
