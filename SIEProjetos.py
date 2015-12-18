@@ -634,7 +634,9 @@ class SIEClassificacoesPrj(SIE):
         :return: Uma lista de dicionários com os tipos de projetos
         """
         params = {
-            'CLASSIFICACAO_ITEM': classificacao_item
+            'CLASSIFICACAO_ITEM': classificacao_item,
+            "ORDERBY":"DESCRICAO",
+            "SORT":'ASC'
         }
         params.update({
             'LMIN': 0,
