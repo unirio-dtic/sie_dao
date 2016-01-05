@@ -277,7 +277,8 @@ class SIEProjetos(SIE):
             documento = SIEDocumentoDAO().obter_documento(projeto['ID_DOCUMENTO'])
             SIEDocumentoDAO().remover_documento(documento)
         else:
-            print "Nenhum documento relacionado ao projeto %d" % ID_PROJETO # TODO Colocar logging?
+            #print "Nenhum documento relacionado ao projeto %d" % ID_PROJETO # TODO Colocar logging?
+            pass
 
         self.api.delete(self.path, {"ID_PROJETO": ID_PROJETO})
 
