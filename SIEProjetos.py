@@ -1038,7 +1038,7 @@ class SIEClassifProjetos(SIE):
         try:
             res = self.api.get("V_PROJETOS_CLASSIFICACOES", params, cache_time=0)
             return res.content if res is not None else []
-        except (AttributeError, ValueError):
+        except (AttributeError, ValueError,NoContentException):
             return []
 
     def get_classificacoes_cnpq(self,id_projeto):

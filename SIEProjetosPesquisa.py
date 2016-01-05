@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from unirio.api.exceptions import APIException, NoContentException
 from sie.SIETabEstruturada import SIETabEstruturada
-from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj, SIEOrgaosProjetos, SIEAvaliacaoProjDAO
+from sie.SIEProjetos import SIEProjetos, SIEParticipantesProjs, SIEArquivosProj, SIEOrgaosProjetos, SIEAvaliacaoProjDAO,SIEClassifProjetos
 from sie.SIEDocumento import SIEDocumentoDAO
 from sie.SIEParametros import SIEParametrosDAO
 from sie.sie_utils import campos_sie_lower,remover_acentos_query
@@ -157,6 +157,15 @@ class SIEProjetosPesquisa(SIEProjetos):
         :return:
         :rtype: bool
         """
+
+        #verificar se tem classificações
+        classificacoes_projeto = SIEClassifProjetos().get_classificacoes_cnpq(id_projeto)
+        grupos_projeto = SIEClassifProjetos().get_grupos_cnpq(id_projeto)
+        camara_pesquisa = SIEClassifProjetos().get_camara_pesquisa(id_projeto)
+
+        if not camara_pesquisa or not classificacoes_projeto or not grupos_projeto:
+            raise SIEException("Projeto não cadastrado. Favor informar as classificações na aba anterior.")
+
 
         documento_projeto = self.documento_inicial_padrao()
         documentoDAO = SIEDocumentoDAO()
